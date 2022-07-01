@@ -20,6 +20,8 @@ You will need to use this package to create two API routes that can be called by
 
 Use the `authenticate` function to authenticate a given `username` and `password`.
 
+> TODO: Explain how the JWT works
+
 ```js
 const {
   authenticate
@@ -30,7 +32,9 @@ const handler = async event => {
   const response = await authenticate(
     body.username,
     body.password,
-    "CRYPTO_SECRET"
+    "user/repo/folder",
+    "GITHUB_ACCESS_TOKEN",
+    "JWT_SECRET"
   );
   return response;
 };
@@ -40,13 +44,18 @@ module.exports = {
 };
 ```
 
+> TODO: Explain how `user/repo/folder` works!
+
 For a successful `username` and `password` combination, the `authenticate` function will return:
 
 ```js
 {
   statusCode: 200,
   authenticated: true,
-  token: "xxxxx.yyyyy.zzzzz"
+  token: "xxxxx.yyyyy.zzzzz",
+  id: 1,
+  fullName: "Rune Madsen",
+  avatar: "https://gravatar.com/runemadsen"
 }
 ```
 
@@ -60,3 +69,30 @@ For an unsuccessful `username` and `password` combination, the `authenticate` fu
 ```
 
 These responses reflect what the JSON responses from the API endpoint should be.
+
+#### Proxy API endpoint
+
+Use the `proxy` function to send enable the data provider to load and save data to GitHub.
+
+```js
+TODO;
+```
+
+### Using the `authProvider` and `dataProvider`
+
+```
+import * as React from "react";
+import { Admin, Resource } from "react-admin";
+import { buildAuthProvider, dataProvider } from "@designsystemsinternational/react-admin-github";
+
+const AdminPage = () => {
+  return (
+    <Admin authProvider={buildAuthProvider("url.to.authenticate")}>
+      <Resource ... />
+    </Admin>
+  );
+};
+
+export default AdminPage;
+
+```

@@ -1,0 +1,21 @@
+{
+  "name": "@designsystemsinternational/react-admin-github",
+  "version": "0.0.1",
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^22.0.1",
+    "@rollup/plugin-node-resolve": "^13.3.0",
+    "rollup": "^2.75.7",
+    "rollup-plugin-peer-deps-external": "^2.2.4"
+  },
+  "dependencies": {
+    "bcrypt": "^5.0.1",
+    "jwt-simple": "^0.5.6",
+    "octokit": "^1.8.1"
+  }
+}
