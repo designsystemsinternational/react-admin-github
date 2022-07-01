@@ -5,8 +5,10 @@
     "build": "rollup -c",
     "dev": "rollup -c -w"
   },
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./api": "./src/node/index.js"
+  },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^22.0.1",
     "@rollup/plugin-node-resolve": "^13.3.0",
@@ -15,6 +17,7 @@
   },
   "dependencies": {
     "bcrypt": "^5.0.1",
+    "js-base64": "^3.7.2",
     "jwt-simple": "^0.5.6",
     "octokit": "^1.8.1"
   }

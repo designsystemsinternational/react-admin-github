@@ -23,25 +23,7 @@ Use the `authenticate` function to authenticate a given `username` and `password
 > TODO: Explain how the JWT works
 
 ```js
-const {
-  authenticate
-} = require("@designsystemsinternational/react-admin-github");
-
-const handler = async event => {
-  const body = JSON.parse(event.body);
-  const response = await authenticate(
-    body.username,
-    body.password,
-    "user/repo/folder",
-    "GITHUB_ACCESS_TOKEN",
-    "JWT_SECRET"
-  );
-  return response;
-};
-
-module.exports = {
-  handler
-};
+TODO!
 ```
 
 > TODO: Explain how `user/repo/folder` works!
@@ -81,18 +63,5 @@ TODO;
 ### Using the `authProvider` and `dataProvider`
 
 ```
-import * as React from "react";
-import { Admin, Resource } from "react-admin";
-import { buildAuthProvider, dataProvider } from "@designsystemsinternational/react-admin-github";
-
-const AdminPage = () => {
-  return (
-    <Admin authProvider={buildAuthProvider("url.to.authenticate")}>
-      <Resource ... />
-    </Admin>
-  );
-};
-
-export default AdminPage;
-
+TODO!
 ```
