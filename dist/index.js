@@ -14,12 +14,14 @@ const get = (url, query) => {
     method: "GET",
     headers: getHeaders()
   })
-    .then(response => response.json().then(data => ({ ok: response.ok, data })))
-    .then(({ ok, data }) => {
+    .then(response =>
+      response.json().then(resbody => ({ ok: response.ok, resbody }))
+    )
+    .then(({ ok, resbody }) => {
       if (!ok) {
-        throw new Error(data.error);
+        throw new Error(resbody.error);
       }
-      return data;
+      return resbody;
     });
 };
 
@@ -31,7 +33,36 @@ const post = (url, body) => {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify(body)
-  }).then(response => response.json());
+  })
+    .then(response =>
+      response.json().then(resbody => ({ ok: response.ok, resbody }))
+    )
+    .then(({ ok, resbody }) => {
+      if (!ok) {
+        throw new Error(resbody.error);
+      }
+      return resbody;
+    });
+};
+
+/**
+  Make a PUT request with fetch
+**/
+const put = (url, body) => {
+  return fetch(url, {
+    method: "PUT",
+    headers: getHeaders(),
+    body: JSON.stringify(body)
+  })
+    .then(response =>
+      response.json().then(resbody => ({ ok: response.ok, resbody }))
+    )
+    .then(({ ok, resbody }) => {
+      if (!ok) {
+        throw new Error(resbody.error);
+      }
+      return resbody;
+    });
 };
 
 /**
@@ -49,6 +80,9 @@ const getHeaders = () => {
   return headers;
 };
 
+/**
+  Reads the JWT from localStorage
+**/
 const getJwt = () => {
   const data = localStorage.getItem("auth");
   if (data) {
@@ -105,24 +139,46 @@ const buildAuthProvider = authenticateUrl => {
 
 const buildJsonDataProvider = proxyUrl => {
   return {
+    /**
+      Get a list of resources.
+      Does not use `filter` or `sort` because it's not supported by GitHub
+    **/
     getList: (resource, params) => {
+      const { pagination } = params;
       return get(proxyUrl, {
         resource,
-        sort: JSON.stringify(params.sort),
-        pagination: JSON.stringify(params.pagination),
-        filter: JSON.stringify(params.filter)
-      }).then(data => {
-        console.log("data", data);
-        return data;
+        page: pagination.page,
+        perPage: pagination.perPage
       });
     },
+
+    /**
+      Get a single resource
+    **/
     getOne: (resource, params) => {
       return get(proxyUrl, {
         resource: resource,
         id: params.id
-      }).then(data => {
-        console.log("data", data);
-        return data;
+      });
+    },
+
+    /**
+      Create a resource
+    **/
+    create: (resource, params) => {
+      return put(proxyUrl, {
+        resource: resource,
+        data: params.data
+      });
+    },
+
+    /**
+      Update a resource
+    **/
+    update: (resource, params) => {
+      return put(proxyUrl, {
+        resource: resource,
+        data: params.data
       });
     }
   };

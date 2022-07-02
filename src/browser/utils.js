@@ -15,12 +15,14 @@ export const get = (url, query) => {
     method: "GET",
     headers: getHeaders()
   })
-    .then(response => response.json().then(data => ({ ok: response.ok, data })))
-    .then(({ ok, data }) => {
+    .then(response =>
+      response.json().then(resbody => ({ ok: response.ok, resbody }))
+    )
+    .then(({ ok, resbody }) => {
       if (!ok) {
-        throw new Error(data.error);
+        throw new Error(resbody.error);
       }
-      return data;
+      return resbody;
     });
 };
 
@@ -32,7 +34,36 @@ export const post = (url, body) => {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify(body)
-  }).then(response => response.json());
+  })
+    .then(response =>
+      response.json().then(resbody => ({ ok: response.ok, resbody }))
+    )
+    .then(({ ok, resbody }) => {
+      if (!ok) {
+        throw new Error(resbody.error);
+      }
+      return resbody;
+    });
+};
+
+/**
+  Make a PUT request with fetch
+**/
+export const put = (url, body) => {
+  return fetch(url, {
+    method: "PUT",
+    headers: getHeaders(),
+    body: JSON.stringify(body)
+  })
+    .then(response =>
+      response.json().then(resbody => ({ ok: response.ok, resbody }))
+    )
+    .then(({ ok, resbody }) => {
+      if (!ok) {
+        throw new Error(resbody.error);
+      }
+      return resbody;
+    });
 };
 
 /**
@@ -50,6 +81,9 @@ const getHeaders = () => {
   return headers;
 };
 
+/**
+  Reads the JWT from localStorage
+**/
 const getJwt = () => {
   const data = localStorage.getItem("auth");
   if (data) {
