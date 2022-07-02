@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "scripts": {
     "build": "rollup -c",
-    "dev": "rollup -c -w"
+    "dev": "rollup -c -w",
+    "prepublish": "npm run build"
   },
   "exports": {
     ".": "./dist/index.js",
