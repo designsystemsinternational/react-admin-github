@@ -26,7 +26,7 @@ Use the `authenticate` function to authenticate a given `username` and `password
 TODO!
 ```
 
-> TODO: Explain how `user/repo/folder` works!
+> TODO: Explain how `user/repo/folder` works! Including auto ID as filename identifier.
 
 For a successful `username` and `password` combination, the `authenticate` function will return:
 

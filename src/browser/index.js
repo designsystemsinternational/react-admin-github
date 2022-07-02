@@ -1,3 +1,4 @@
 import buildAuthProvider from "./authProvider";
+import buildJsonDataProvider from "./jsonDataProvider";
 
-export { buildAuthProvider };
+export { buildAuthProvider, buildJsonDataProvider };

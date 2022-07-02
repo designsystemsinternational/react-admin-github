@@ -1,25 +1,16 @@
+import { post } from "./utils";
+
 const buildAuthProvider = authenticateUrl => {
   return {
     login: ({ username, password }) => {
-      return fetch(authenticateUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ username, password })
-      })
-        .then(response => response.json())
-        .then(data => {
-          if (data.authenticated) {
-            localStorage.setItem("auth", data);
-            return Promise.resolve();
-          } else {
-            return Promise.reject();
-          }
-        })
-        .catch(error => {
+      return post(authenticateUrl, { username, password }).then(data => {
+        if (data.authenticated) {
+          localStorage.setItem("auth", JSON.stringify(data));
+          return Promise.resolve();
+        } else {
           return Promise.reject();
-        });
+        }
+      });
     },
     checkError: error => {
       const status = error.status;
