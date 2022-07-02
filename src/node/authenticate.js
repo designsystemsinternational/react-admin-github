@@ -4,7 +4,6 @@ const { Octokit } = require("octokit");
 const { Base64 } = require("js-base64");
 
 const errorResponse = {
-  statusCode: 401,
   authenticated: false
 };
 
@@ -33,16 +32,12 @@ const authenticate = async ({
     return errorResponse;
   }
 
-  console.log("secret is", secret);
-  console.log("token is", token);
-
   // Compare password
   const result = await bcrypt.compare(password, json.hash);
   if (result) {
     const tokenPayload = { username };
     const token = jwt.encode(tokenPayload, secret);
     return Object.assign({}, json, {
-      statusCode: 200,
       authenticated: true,
       token
     });

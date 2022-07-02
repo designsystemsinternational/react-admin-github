@@ -32,7 +32,6 @@ For a successful `username` and `password` combination, the `authenticate` funct
 
 ```js
 {
-  statusCode: 200,
   authenticated: true,
   token: "xxxxx.yyyyy.zzzzz",
   id: 1,
@@ -45,7 +44,6 @@ For an unsuccessful `username` and `password` combination, the `authenticate` fu
 
 ```js
 {
-  statusCode: 401,
   authenticated: false,
 }
 ```
