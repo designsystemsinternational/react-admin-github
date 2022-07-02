@@ -60,6 +60,9 @@ const proxy = async ({
     } else {
       return create(octokit, repo, resource, data);
     }
+  } else if (method === "DELETE") {
+    const { resource, id } = query;
+    return del(octokit, repo, resource, id);
   } else {
     return { statusCode: 500, body: { error: "HTTP method not recognized" } };
   }
@@ -104,7 +107,7 @@ const create = async (octokit, repo, resource, data, resourceIds) => {
     const response = await octokit.request(
       `PUT /repos/${repo}/contents/content/${resource}/${id}.json`,
       {
-        message: `Resource created: ${resource}/${id}.json`,
+        message: `Created resource: ${resource}/${id}.json`,
         content: jsonToBase64(data)
       }
     );
@@ -116,18 +119,39 @@ const create = async (octokit, repo, resource, data, resourceIds) => {
 
 const update = async (octokit, repo, resource, data) => {
   try {
-    // load the sha
     const getResponse = await octokit.request(
       `GET /repos/${repo}/contents/content/${resource}/${data.id}.json`
     );
     const response = await octokit.request(
       `PUT /repos/${repo}/contents/content/${resource}/${data.id}.json`,
       {
-        message: `Resource updated: ${resource}/${data.id}.json`,
+        message: `Updated resource: ${resource}/${data.id}.json`,
         content: jsonToBase64(data),
         sha: getResponse.data.sha
       }
     );
+    return {
+      statusCode: response.status ?? getResponse.status,
+      body: { data }
+    };
+  } catch (e) {
+    return { statusCode: e.status, body: { error: e.message } };
+  }
+};
+
+const del = async (octokit, repo, resource, id) => {
+  try {
+    const getResponse = await octokit.request(
+      `GET /repos/${repo}/contents/content/${resource}/${id}.json`
+    );
+    const response = await octokit.request(
+      `DELETE /repos/${repo}/contents/content/${resource}/${id}.json`,
+      {
+        message: `Delete resource: ${resource}/${id}.json`,
+        sha: getResponse.data.sha
+      }
+    );
+    const data = base64ToJson(getResponse.data.content);
     return {
       statusCode: response.status ?? getResponse.status,
       body: { data }

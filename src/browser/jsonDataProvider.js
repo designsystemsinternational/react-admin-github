@@ -1,4 +1,4 @@
-import { get, put } from "./utils";
+import { get, put, del } from "./utils";
 
 const buildJsonDataProvider = proxyUrl => {
   return {
@@ -42,6 +42,16 @@ const buildJsonDataProvider = proxyUrl => {
       return put(proxyUrl, {
         resource: resource,
         data: params.data
+      });
+    },
+
+    /**
+      Delete a resource
+    **/
+    delete: (resource, params) => {
+      return del(proxyUrl, {
+        resource: resource,
+        id: params.id
       });
     }
   };

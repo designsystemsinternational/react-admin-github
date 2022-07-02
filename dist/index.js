@@ -66,6 +66,26 @@ const put = (url, body) => {
 };
 
 /**
+  Make a DELETE request with fetch
+**/
+const del = (url, query) => {
+  const urlWithQuery = url + "?" + new URLSearchParams(query);
+  return fetch(urlWithQuery, {
+    method: "DELETE",
+    headers: getHeaders()
+  })
+    .then(response =>
+      response.json().then(resbody => ({ ok: response.ok, resbody }))
+    )
+    .then(({ ok, resbody }) => {
+      if (!ok) {
+        throw new Error(resbody.error);
+      }
+      return resbody;
+    });
+};
+
+/**
   Returns headers for a JSON fetch request with an Authorization
   header with JWT token if it is set in localStorage.
 **/
@@ -179,6 +199,16 @@ const buildJsonDataProvider = proxyUrl => {
       return put(proxyUrl, {
         resource: resource,
         data: params.data
+      });
+    },
+
+    /**
+      Delete a resource
+    **/
+    delete: (resource, params) => {
+      return del(proxyUrl, {
+        resource: resource,
+        id: params.id
       });
     }
   };
