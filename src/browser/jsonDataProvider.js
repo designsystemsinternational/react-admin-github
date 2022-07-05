@@ -25,6 +25,9 @@ const buildJsonDataProvider = proxyUrl => {
       });
     },
 
+    // getMany
+    // getManyReference
+
     /**
       Create a resource
     **/
@@ -45,6 +48,8 @@ const buildJsonDataProvider = proxyUrl => {
       });
     },
 
+    // updateMany
+
     /**
       Delete a resource
     **/
@@ -54,6 +59,8 @@ const buildJsonDataProvider = proxyUrl => {
         id: params.id
       });
     }
+
+    // deleteMany
   };
 };
 

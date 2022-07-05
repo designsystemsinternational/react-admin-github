@@ -7,7 +7,8 @@ const {
   ProxyError,
   base64ToJson,
   jsonToBase64,
-  createId
+  createId,
+  parseId
 } = require("./utils");
 
 const proxy = async ({
@@ -50,7 +51,7 @@ const proxy = async ({
     if (id) {
       return await getOne(octokit, repo, resource, id);
     } else {
-      return await getList(octokit, repo, resource);
+      return await getList(octokit, repo, resource, resourceIds, query);
     }
   } else if (method === "PUT") {
     const { resource, data } =
@@ -80,16 +81,26 @@ const getOne = async (octokit, repo, resource, id) => {
   }
 };
 
-const getList = async (octokit, repo, resource) => {
+/**
+  Gets a list of resources.
+  Because neither the GitHub tree or contents API support pagination on files
+  We load all and paginate in this API function. Not the greatest.
+**/
+const getList = async (octokit, repo, resource, resourceIds, query) => {
+  const page = parseInt(query.page) ?? 1;
+  const perPage = parseInt(query.perPage) ?? 10;
   try {
     const response = await octokit.request(
       `GET /repos/${repo}/contents/content/${resource}`
     );
-    const data = response.data.map(file => {
+    const { data } = response;
+    const pageStartIdx = (page - 1) * perPage;
+    const pageEndIdx = pageStartIdx + perPage;
+    const pageData = data.slice(pageStartIdx, pageEndIdx).map(file => {
       const id = path.basename(file.name, ".json");
-      return { id };
+      return parseId(id, resource, resourceIds);
     });
-    return { statusCode: 200, body: { data, total: data.length } };
+    return { statusCode: 200, body: { data: pageData, total: data.length } };
   } catch (e) {
     return { statusCode: e.status, body: { error: e.message } };
   }
@@ -100,14 +111,15 @@ const create = async (octokit, repo, resource, data, resourceIds) => {
   if (!id) {
     return {
       statusCode: 500,
-      body: { error: "Could not generate id field" }
+      body: { error: "Could not generate id for resource" }
     };
   }
+  const path = `content/${resource}/${id}.json`;
   try {
     const response = await octokit.request(
-      `PUT /repos/${repo}/contents/content/${resource}/${id}.json`,
+      `PUT /repos/${repo}/contents/${path}`,
       {
-        message: `Created resource: ${resource}/${id}.json`,
+        message: `Created resource: ${path}`,
         content: jsonToBase64(data)
       }
     );
