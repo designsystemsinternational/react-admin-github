@@ -164,11 +164,13 @@ const buildJsonDataProvider = proxyUrl => {
       Does not use `filter` or `sort` because it's not supported by GitHub
     **/
     getList: (resource, params) => {
-      const { pagination } = params;
+      const { pagination, sort } = params;
       return get(proxyUrl, {
         resource,
         page: pagination.page,
-        perPage: pagination.perPage
+        perPage: pagination.perPage,
+        sortField: sort.field,
+        sortOrder: sort.order
       });
     },
 

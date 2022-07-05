@@ -89,17 +89,37 @@ const getOne = async (octokit, repo, resource, id) => {
 const getList = async (octokit, repo, resource, resourceIds, query) => {
   const page = parseInt(query.page) ?? 1;
   const perPage = parseInt(query.perPage) ?? 10;
+  const { sortField, sortOrder } = query;
+
   try {
     const response = await octokit.request(
       `GET /repos/${repo}/contents/content/${resource}`
     );
     const { data } = response;
-    const pageStartIdx = (page - 1) * perPage;
-    const pageEndIdx = pageStartIdx + perPage;
-    const pageData = data.slice(pageStartIdx, pageEndIdx).map(file => {
+
+    // Turn filenames into data objects
+    const parsedData = data.slice().map(file => {
       const id = path.basename(file.name, ".json");
       return parseId(id, resource, resourceIds);
     });
+
+    // Sort depending on the sort order
+    const isAsc = sortOrder === "ASC";
+    parsedData.sort((a, b) => {
+      if (a[sortField] < b[sortField]) {
+        return isAsc ? -1 : 1;
+      } else if (a[sortField] > b[sortField]) {
+        return isAsc ? 1 : -1;
+      } else {
+        return 0;
+      }
+    });
+
+    // Pagination
+    const pageStartIdx = (page - 1) * perPage;
+    const pageEndIdx = pageStartIdx + perPage;
+    const pageData = parsedData.slice(pageStartIdx, pageEndIdx);
+
     return { statusCode: 200, body: { data: pageData, total: data.length } };
   } catch (e) {
     return { statusCode: e.status, body: { error: e.message } };
