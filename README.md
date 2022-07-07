@@ -11,72 +11,27 @@ This package ships with three main pieces of functionality:
 
 ### 1. Auth Provider
 
-This `authProvider` for `react-admin` uses a list of JSON files with user data from the GitHub repository to handle authentication and user management. You can create, edit or delete these JSON files, and this will determine whether users can log in to your `react-admin` website.
+The `authProvider` uses a list of JSON files with user data from the GitHub repository to handle authentication and user management. You can create, edit or delete these JSON files, and this will determine whether users can log in to your `react-admin` website.
 
-The `authProvider` **does not** use the GitHub Oauth flow as a login to your `react-admin` site, as we don't want to require our `react-admin` to create GitHub accounts.
+The `authProvider` **does not** use the GitHub OAuth flow as a login to your `react-admin` site, as we don't want to require our `react-admin` users to create GitHub accounts.
 
-The list of user files should be created in a `content/users` folder in the website repository root, and each user should have at least
+The list of user files should be created in a [`content/users` folder](https://github.com/designsystemsinternational/react-admin-github-example/tree/main/content/users) in the website repository root, and this file has basic info about the user, as well as a hashed password.
 
-**React Admin Data Provider**. A data provider for `react-admin` that allows you to load and save JSON files directly from the GitHub repository.
+### 2. JSON Data Provider
 
-**API functions**. These allow you to create a simple API that serves as a proxy between the static site and the GitHub app. This is needed because the static site cannot expose the GitHub access token. These functions are written so they can be used in both server and serverless environments.
+The `jsonDataProvider` is used to load resource data stored in JSON files in a folder named after the resource (e.g. [`content/posts`](https://github.com/designsystemsinternational/react-admin-github-example/tree/main/content/posts)). It uses the GitHub contents API to load, create, update and delete these JSON files, and this puts a number of restrictions on this package:
 
-> TODO: Cannot have more than 1000 files in a single folder
+- **You can have a maximum of 1000 resources in the same resource folder**. This is because neither the Git Tree nor the Git Content API on GitHub supports pagination on file data.
+- **You can only show a single field value and a `createdAt` timestamp in the resource list**. This is because we cannot load all resource JSON files via the GitHub API when listing resources, so this package encodes a timestamp and a field value into the filename itself (e.g. `2022-07-05-09-00-00-My-amazing-post.json`). You can set which field value to use when setting up the API functions (see below).
 
-> TODO: filenames are YYYY-MM-DD-HH-MM-SS-slug.json
+### 3. API functions
 
-## Getting Started
+When communicating with the GitHub API, you need a personal access token or App secret, and these cannot be exposed on your static website. Therefore, this package ships with two API functions that can be used in any serverless framework (AWS Lambda, Netlify Functions, etc) or cloud server (EC2, Heroku, etc).
 
-### Creating the API
+- The `authenticate` function is used to create an API endpoint for authenticating with the `authProvider`.
+- The `contents` function is used to create an API endpoint for loading content via the GitHub contents API.
 
-You will need to use this package to create two API routes that can be called by the auth and data providers. The examples below show how to use the exported functions in an AWS Lambda environment, but the concept should be easily transferred to Netlify Functions or an Express.js app running on Heroku.
+## Example
 
-#### Auth API endpoint
-
-Use the `authenticate` function to authenticate a given `username` and `password`.
-
-> TODO: Explain how the JWT works
-
-```js
-TODO!
-```
-
-> TODO: Explain how `user/repo/folder` works! Including auto ID as filename identifier.
-
-For a successful `username` and `password` combination, the `authenticate` function will return:
-
-```js
-{
-  authenticated: true,
-  token: "xxxxx.yyyyy.zzzzz",
-  id: 1,
-  fullName: "Rune Madsen",
-  avatar: "https://gravatar.com/runemadsen"
-}
-```
-
-For an unsuccessful `username` and `password` combination, the `authenticate` function will return:
-
-```js
-{
-  authenticated: false,
-}
-```
-
-These responses reflect what the JSON responses from the API endpoint should be.
-
-#### Proxy API endpoint
-
-Use the `proxy` function to send enable the data provider to load and save data to GitHub.
-
-> TODO: resourceIds must be there
-
-```js
-TODO;
-```
-
-### Using the `authProvider` and `dataProvider`
-
-```
-TODO!
-```
+This example demonstrates how to use this package:
+https://github.com/designsystemsinternational/react-admin-github-example
