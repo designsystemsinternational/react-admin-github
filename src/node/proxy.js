@@ -47,9 +47,11 @@ const proxy = async ({
   const method = httpMethod.toUpperCase();
 
   if (method === "GET") {
-    const { resource, id } = query;
+    const { resource, id, ids } = query;
     if (id) {
       return await getOne(octokit, repo, resource, id);
+    } else if (ids) {
+      return await getMany(octokit, repo, resource, ids);
     } else {
       return await getList(octokit, repo, resource, resourceIds, query);
     }
@@ -69,6 +71,9 @@ const proxy = async ({
   }
 };
 
+/**
+  Gets a single resource by ID
+**/
 const getOne = async (octokit, repo, resource, id) => {
   try {
     const response = await octokit.request(
@@ -76,6 +81,29 @@ const getOne = async (octokit, repo, resource, id) => {
     );
     const json = base64ToJson(response.data.content);
     return { statusCode: 200, body: { data: withId(json, id) } };
+  } catch (e) {
+    return { statusCode: e.status, body: { error: e.message } };
+  }
+};
+
+/**
+  Gets multiple resources by ID
+  The only way to do this with the GitHub api is to make a request per resource
+  I think that's okay since this is often 2-5 resources being loaded.
+**/
+const getMany = async (octokit, repo, resource, ids) => {
+  try {
+    const data = await Promise.all(
+      JSON.parse(ids).map(id => {
+        return octokit
+          .request(`GET /repos/${repo}/contents/content/${resource}/${id}.json`)
+          .then(response => {
+            const json = base64ToJson(response.data.content);
+            return withId(json, id);
+          });
+      })
+    );
+    return { statusCode: 200, body: { data } };
   } catch (e) {
     return { statusCode: e.status, body: { error: e.message } };
   }

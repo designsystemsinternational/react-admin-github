@@ -27,7 +27,12 @@ const buildJsonDataProvider = proxyUrl => {
       });
     },
 
-    // getMany
+    getMany: (resource, params) => {
+      return get(proxyUrl, {
+        resource: resource,
+        ids: JSON.stringify(params.ids)
+      });
+    },
     // getManyReference
 
     /**

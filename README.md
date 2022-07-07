@@ -1,18 +1,27 @@
 # React Admin GitHub
 
-The goal of this package is to enable GitHub as a backend to websites created with [`react-admin`](https://marmelab.com/react-admin/). This is a great option if you are making static websites with content in JSON files, and you just want a simple CMS that sits on top of this file structure.
+The goal of this package is to enable GitHub as an auth and data provider to websites created with [`react-admin`](https://marmelab.com/react-admin/). We often have the need for providing a simple editing interface on top of Git repository files and this package is the result of that. Please read the documentation below as the GitHub API has several limitations that influence what you can do in your `react-admin` site.
 
-> TODO: Cannot have more than 1000 files in a single folder
+You can see a working example with `react-admin`, `react-admin-github` and `gatsby` here:
+https://github.com/designsystemsinternational/react-admin-github-example
 
-## What is included?
+## How does it work?
 
-This package has three main pieces:
+This package ships with three main pieces of functionality:
+
+### 1. Auth Provider
+
+This `authProvider` for `react-admin` uses a list of JSON files with user data from the GitHub repository to handle authentication and user management. You can create, edit or delete these JSON files, and this will determine whether users can log in to your `react-admin` website.
+
+The `authProvider` **does not** use the GitHub Oauth flow as a login to your `react-admin` site, as we don't want to require our `react-admin` to create GitHub accounts.
+
+The list of user files should be created in a `content/users` folder in the website repository root, and each user should have at least
+
+**React Admin Data Provider**. A data provider for `react-admin` that allows you to load and save JSON files directly from the GitHub repository.
 
 **API functions**. These allow you to create a simple API that serves as a proxy between the static site and the GitHub app. This is needed because the static site cannot expose the GitHub access token. These functions are written so they can be used in both server and serverless environments.
 
-**React Admin Auth Provider**. An auth provider for `react-admin` that interacts with the proxy API to authenticate a user based on JSON files in the repository.
-
-**React Admin Data Provider**. A data provider for `react-admin` that allows you to load and save JSON files directly from the GitHub repository.
+> TODO: Cannot have more than 1000 files in a single folder
 
 > TODO: filenames are YYYY-MM-DD-HH-MM-SS-slug.json
 
