@@ -61,7 +61,7 @@ const proxy = async ({
     if (data.id) {
       return update(octokit, repo, resource, data, resourceIds);
     } else {
-      return create(octokit, repo, resource, data);
+      return create(octokit, repo, resource, data, resourceIds);
     }
   } else if (method === "DELETE") {
     const { resource, id } = query;
@@ -126,10 +126,13 @@ const getList = async (octokit, repo, resource, resourceIds, query) => {
     const { data } = response;
 
     // Turn filenames into data objects
-    const parsedData = data.slice().map(file => {
-      const id = path.basename(file.name, ".json");
-      return parseId(id, resource, resourceIds);
-    });
+    const parsedData = data
+      .slice()
+      .filter(file => file.name.endsWith("json"))
+      .map(file => {
+        const id = path.basename(file.name, ".json");
+        return parseId(id, resource, resourceIds);
+      });
 
     // Sort depending on the sort order
     const isAsc = sortOrder === "ASC";

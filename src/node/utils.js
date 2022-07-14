@@ -31,7 +31,7 @@ const createId = (resource, data, resourceIds = {}) => {
     return null;
   }
 
-  return `${timestamp()}-${slug}`;
+  return `${timestamp()}-${id}`;
 };
 
 /**
