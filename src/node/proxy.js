@@ -61,7 +61,7 @@ const proxy = async ({
     if (data.id) {
       return update(octokit, repo, resource, data, resourceIds);
     } else {
-      return create(octokit, repo, resource, data);
+      return create(octokit, repo, resource, data, resourceIds);
     }
   } else if (method === "DELETE") {
     const { resource, id } = query;
