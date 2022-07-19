@@ -1,34 +1,47 @@
-import { get, put, del } from "./utils";
+import { get, put, del, addSettingsToPayload } from "./utils";
 
-const buildJsonDataProvider = proxyUrl => {
+const buildDataProvider = (proxyUrl, settings) => {
+  const { resources } = settings;
+
   return {
     /**
       Get a list of resources.
-      Does not use `filter` or `sort` because it's not supported by GitHub
     **/
     getList: (resource, params) => {
       const { pagination, sort } = params;
-      return get(proxyUrl, {
+
+      const query = {
+        action: "contents",
         resource,
         page: pagination.page,
         perPage: pagination.perPage,
         sortField: sort.field,
         sortOrder: sort.order
-      });
+      };
+
+      addSettingsToPayload(settings, resource, query);
+
+      return get(proxyUrl, query);
     },
 
     /**
       Get a single resource
     **/
     getOne: (resource, params) => {
-      return get(proxyUrl, {
+      const query = {
+        action: "contents",
         resource: resource,
         id: params.id
-      });
+      };
+
+      addSettingsToPayload(settings, resource, query);
+
+      return get(proxyUrl, query);
     },
 
     getMany: (resource, params) => {
       return get(proxyUrl, {
+        action: "contents",
         resource: resource,
         ids: JSON.stringify(params.ids)
       });
@@ -40,6 +53,7 @@ const buildJsonDataProvider = proxyUrl => {
     **/
     create: (resource, params) => {
       return put(proxyUrl, {
+        action: "contents",
         resource: resource,
         data: params.data
       });
@@ -49,10 +63,15 @@ const buildJsonDataProvider = proxyUrl => {
       Update a resource
     **/
     update: (resource, params) => {
-      return put(proxyUrl, {
+      const body = {
+        action: "contents",
         resource: resource,
         data: params.data
-      });
+      };
+
+      addSettingsToPayload(settings, resource, body);
+
+      return put(proxyUrl, body);
     },
 
     // updateMany
@@ -61,14 +80,19 @@ const buildJsonDataProvider = proxyUrl => {
       Delete a resource
     **/
     delete: (resource, params) => {
-      return del(proxyUrl, {
+      const query = {
+        action: "contents",
         resource: resource,
         id: params.id
-      });
+      };
+
+      addSettingsToPayload(settings, resource, query);
+
+      return del(proxyUrl, query);
     }
 
     // deleteMany
   };
 };
 
-export default buildJsonDataProvider;
+export default buildDataProvider;

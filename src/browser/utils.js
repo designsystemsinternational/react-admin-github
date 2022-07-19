@@ -105,10 +105,28 @@ const getHeaders = () => {
   Reads the JWT from localStorage
 **/
 const getJwt = () => {
-  const data = localStorage.getItem("auth");
+  const data = localStorage.getItem("rag-auth");
   if (data) {
-    const auth = JSON.parse(localStorage.getItem("auth"));
-    return auth.jwt;
+    return JSON.parse(data).jwt;
   }
   return null;
+};
+
+export const hasSettings = (resources, resource) =>
+  typeof resources === "object" && resources.hasOwnProperty(resource);
+
+/**
+  Used for adding extra stuff to the query or body of a request
+  based on the settings that the dataprovider was provided.
+**/
+export const addSettingsToPayload = (settings, resource, payload) => {
+  // Add settings specific to the resource
+  if (settings && settings.resources && settings.resources[resource]) {
+    const resourceSettings = settings.resources[resource];
+
+    // smartJson
+    if (resourceSettings.loadJson) {
+      payload.loadJson = "true";
+    }
+  }
 };

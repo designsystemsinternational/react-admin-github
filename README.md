@@ -17,19 +17,16 @@ The `authProvider` **does not** use the GitHub OAuth flow as a login to your `re
 
 The list of user files should be created in a [`content/users` folder](https://github.com/designsystemsinternational/react-admin-github-example/tree/main/content/users) in the website repository root, and this file has basic info about the user, as well as a hashed password.
 
-### 2. JSON Data Provider
+### 2. Data Provider
 
-The `jsonDataProvider` is used to load resource data stored in JSON files in a folder named after the resource (e.g. [`content/posts`](https://github.com/designsystemsinternational/react-admin-github-example/tree/main/content/posts)). It uses the GitHub contents API to load, create, update and delete these JSON files, and this puts a number of restrictions on this package:
+The `dataProvider` is used to load both normal files and resource data stored in JSON files in a folder named after the resource (e.g. [`content/posts`](https://github.com/designsystemsinternational/react-admin-github-example/tree/main/content/posts)). It uses the GitHub contents API to load, create, update and delete these JSON files, and this puts a number of restrictions on this package:
 
 - **You can have a maximum of 1000 resources in the same resource folder**. This is because neither the Git Tree nor the Git Content API on GitHub supports pagination on file data.
 - **You can only show a single field value and a `createdAt` timestamp in the resource list**. This is because we cannot load all resource JSON files via the GitHub API when listing resources, so this package encodes a timestamp and a field value into the filename itself (e.g. `2022-07-05-09-00-00-My-amazing-post.json`). You can set which field value to use when setting up the API functions (see below).
 
-### 3. API functions
+### 3. API function
 
-When communicating with the GitHub API, you need a personal access token or App secret, and these cannot be exposed on your static website. Therefore, this package ships with two API functions that can be used in any serverless framework (AWS Lambda, Netlify Functions, etc) or cloud server (EC2, Heroku, etc).
-
-- The `authenticate` function is used to create an API endpoint for authenticating with the `authProvider`.
-- The `contents` function is used to create an API endpoint for loading content via the GitHub contents API.
+When communicating with the GitHub API, you need a personal access token or App secret, and these cannot be exposed on your static website. Therefore, this package ships with a single function that can be used in any serverless framework (AWS Lambda, Netlify Functions, etc) or cloud server (EC2, Heroku, etc) to proxy calls to the GitHub API. This function holds all the functionality needed to run the `authProvider` and `dataProvider`.
 
 ## Example
 

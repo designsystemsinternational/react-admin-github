@@ -2,51 +2,79 @@ const { Base64 } = require("js-base64");
 const slugify = require("slugify");
 const path = require("path");
 
-class ProxyError extends Error {
-  constructor(status, message) {
-    super(message);
-    this.status = status;
-    this.name = "ProxyError";
-  }
-}
-
 const withId = (data, id) => Object.assign({}, data, { id });
 
 const base64ToJson = base64 => JSON.parse(Base64.decode(base64));
 const jsonToBase64 = json => Base64.encode(JSON.stringify(json, null, 2));
 
-/**
-  Creates an ID string holding both a createdAt timestamp
-  and a field value, so we can later extract this in the
-  getList return without loading each individual file.
-**/
-const createId = (resource, data, resourceIds = {}) => {
-  const idValue = data[resourceIds[resource]];
-  let id;
-  if (typeof idValue === "string") {
-    id = slugify(idValue);
-  } else if (typeof idValue === "number") {
-    id = idValue.toString();
-  } else {
-    return null;
-  }
+const error = (statusCode, error) => ({ statusCode, body: { error } });
+const success = (statusCode, body) => ({ statusCode, body });
 
-  return `${timestamp()}-${id}`;
+/**
+  Parses a JSON string into an object
+  Passes everything straight through
+**/
+const maybeParseJson = str => {
+  if (typeof str === "string" && str !== "") {
+    return JSON.parse(str);
+  }
+  return str;
 };
 
 /**
-  Parses an ID string to a createdAt and field value
-  It is currently a very simple way of destructuring the field value,
-  and it would be nice to have a good non-destructive way of str > slug > str
+  Adds a timestamp to an existing filename
 **/
-const parseId = (id, resource, resourceIds) => {
-  const [year, month, day, hour, minute, second, ...fieldArray] = id.split("-");
-  const fieldValue = fieldArray.join(" ");
-  return {
-    id,
+const createFilename = name => {
+  return `${timestamp()}-${slugify(name, { lower: true, trim: true })}`;
+};
+
+/**
+  These property values are never saved in JSON files, but instead
+  added on the fly by the server.
+**/
+const extraProperties = ["id", "name", "path", "type", "createdAt", "slug"];
+
+const removeExtraProperties = data => {
+  const copy = Object.assign({}, data);
+  for (let i = 0; i < extraProperties.length; i++) {
+    delete copy[extraProperties[i]];
+  }
+  return copy;
+};
+
+/**
+  Returns file info plus JSON contents of file if loadJson
+**/
+const resourcePayload = (responseData, loadJson, json) => {
+  const [
+    year,
+    month,
+    day,
+    hour,
+    minute,
+    second,
+    ...slugArray
+  ] = responseData.name.split("-");
+
+  const payload = {
+    id: responseData.name,
+    name: responseData.name,
+    path: responseData.path,
+    type: responseData.type,
     createdAt: `${year}-${month}-${day}T${hour}:${minute}:${second}Z`,
-    [resourceIds[resource]]: fieldValue
+    slug: slugArray.join("-")
   };
+
+  if (
+    (json || responseData.content) &&
+    loadJson &&
+    responseData.name.endsWith(".json")
+  ) {
+    const contents = json ?? base64ToJson(responseData.content);
+    Object.assign(payload, contents);
+  }
+
+  return payload;
 };
 
 const timestamp = () => {
@@ -68,9 +96,12 @@ const timestamp = () => {
 
 module.exports = {
   withId,
-  ProxyError,
   base64ToJson,
   jsonToBase64,
-  createId,
-  parseId
+  createFilename,
+  error,
+  success,
+  maybeParseJson,
+  resourcePayload,
+  removeExtraProperties
 };

@@ -104,20 +104,39 @@ const getHeaders = () => {
   Reads the JWT from localStorage
 **/
 const getJwt = () => {
-  const data = localStorage.getItem("auth");
+  const data = localStorage.getItem("rag-auth");
   if (data) {
-    const auth = JSON.parse(localStorage.getItem("auth"));
-    return auth.jwt;
+    return JSON.parse(data).jwt;
   }
   return null;
+};
+
+/**
+  Used for adding extra stuff to the query or body of a request
+  based on the settings that the dataprovider was provided.
+**/
+const addSettingsToPayload = (settings, resource, payload) => {
+  // Add settings specific to the resource
+  if (settings && settings.resources && settings.resources[resource]) {
+    const resourceSettings = settings.resources[resource];
+
+    // smartJson
+    if (resourceSettings.loadJson) {
+      payload.loadJson = "true";
+    }
+  }
 };
 
 const buildAuthProvider = authenticateUrl => {
   return {
     login: ({ username, password }) => {
-      return post(authenticateUrl, { username, password }).then(data => {
+      return post(authenticateUrl, {
+        action: "authenticate",
+        id: username,
+        password
+      }).then(data => {
         if (data.authenticated) {
-          localStorage.setItem("auth", JSON.stringify(data));
+          localStorage.setItem("rag-auth", JSON.stringify(data));
           return Promise.resolve();
         } else {
           return Promise.reject();
@@ -127,26 +146,26 @@ const buildAuthProvider = authenticateUrl => {
     checkError: error => {
       const status = error.status;
       if (status === 401 || status === 403) {
-        localStorage.removeItem("auth");
+        localStorage.removeItem("rag-auth");
         return Promise.reject();
       }
       return Promise.resolve();
     },
     checkAuth: params => {
-      if (localStorage.getItem("auth")) {
+      if (localStorage.getItem("rag-auth")) {
         return Promise.resolve();
       } else {
         return Promise.reject();
       }
     },
     logout: () => {
-      localStorage.removeItem("auth");
+      localStorage.removeItem("rag-auth");
       return Promise.resolve();
     },
     getIdentity: () => {
       try {
         const { id, fullName, avatar } = JSON.parse(
-          localStorage.getItem("auth")
+          localStorage.getItem("rag-auth")
         );
         return Promise.resolve({ id, fullName, avatar });
       } catch (error) {
@@ -157,35 +176,47 @@ const buildAuthProvider = authenticateUrl => {
   };
 };
 
-const buildJsonDataProvider = proxyUrl => {
+const buildDataProvider = (proxyUrl, settings) => {
+
   return {
     /**
       Get a list of resources.
-      Does not use `filter` or `sort` because it's not supported by GitHub
     **/
     getList: (resource, params) => {
       const { pagination, sort } = params;
-      return get(proxyUrl, {
+
+      const query = {
+        action: "contents",
         resource,
         page: pagination.page,
         perPage: pagination.perPage,
         sortField: sort.field,
         sortOrder: sort.order
-      });
+      };
+
+      addSettingsToPayload(settings, resource, query);
+
+      return get(proxyUrl, query);
     },
 
     /**
       Get a single resource
     **/
     getOne: (resource, params) => {
-      return get(proxyUrl, {
+      const query = {
+        action: "contents",
         resource: resource,
         id: params.id
-      });
+      };
+
+      addSettingsToPayload(settings, resource, query);
+
+      return get(proxyUrl, query);
     },
 
     getMany: (resource, params) => {
       return get(proxyUrl, {
+        action: "contents",
         resource: resource,
         ids: JSON.stringify(params.ids)
       });
@@ -197,6 +228,7 @@ const buildJsonDataProvider = proxyUrl => {
     **/
     create: (resource, params) => {
       return put(proxyUrl, {
+        action: "contents",
         resource: resource,
         data: params.data
       });
@@ -206,10 +238,15 @@ const buildJsonDataProvider = proxyUrl => {
       Update a resource
     **/
     update: (resource, params) => {
-      return put(proxyUrl, {
+      const body = {
+        action: "contents",
         resource: resource,
         data: params.data
-      });
+      };
+
+      addSettingsToPayload(settings, resource, body);
+
+      return put(proxyUrl, body);
     },
 
     // updateMany
@@ -218,14 +255,19 @@ const buildJsonDataProvider = proxyUrl => {
       Delete a resource
     **/
     delete: (resource, params) => {
-      return del(proxyUrl, {
+      const query = {
+        action: "contents",
         resource: resource,
         id: params.id
-      });
+      };
+
+      addSettingsToPayload(settings, resource, query);
+
+      return del(proxyUrl, query);
     }
 
     // deleteMany
   };
 };
 
-export { buildAuthProvider, buildJsonDataProvider };
+export { buildAuthProvider, buildDataProvider };
