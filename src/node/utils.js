@@ -1,6 +1,6 @@
 const { Base64 } = require("js-base64");
 const slugify = require("slugify");
-const path = require("path");
+const { join, basename, relative, dirname } = require("path");
 
 const withId = (data, id) => Object.assign({}, data, { id });
 
@@ -32,20 +32,32 @@ const createFilename = name => {
   These property values are never saved in JSON files, but instead
   added on the fly by the server.
 **/
-const extraProperties = ["id", "name", "path", "type", "createdAt", "slug"];
-
-const removeExtraProperties = data => {
+const removeGeneratedProperties = async data => {
   const copy = Object.assign({}, data);
-  for (let i = 0; i < extraProperties.length; i++) {
-    delete copy[extraProperties[i]];
+
+  // Remove all the main properties that we generated
+  const generated = ["id", "name", "path", "type", "createdAt", "slug"];
+  for (let i = 0; i < generated.length; i++) {
+    delete copy[generated[i]];
   }
+
+  // Remove url field from all files
+  await iterateFiles(copy, file => {
+    delete file.url;
+    return file;
+  });
+
   return copy;
 };
 
+const relativePath = (from, to) =>
+  join(relative(dirname(from), dirname(to)), basename(to));
+
 /**
-  Returns file info plus JSON contents of file if handler is json
+  Constructs `data` payload for a single React Admin resource
+   based on the response from the GitHub API.
 **/
-const resourcePayload = (responseData, handler, json) => {
+const resourcePayload = async (responseData, handler, json) => {
   const payload = {
     id: responseData.name,
     name: responseData.name,
@@ -68,6 +80,14 @@ const resourcePayload = (responseData, handler, json) => {
     responseData.name.endsWith(".json")
   ) {
     const contents = json ?? base64ToJson(responseData.content);
+
+    // Add URL property to all single files or array of files
+    await iterateFiles(contents, file => {
+      return Object.assign({}, file, {
+        url: "https://assets.runemadsen.com/front/pds.jpg"
+      });
+    });
+
     Object.assign(payload, contents);
   }
 
@@ -91,6 +111,76 @@ const timestamp = () => {
   ].join("-");
 };
 
+/**
+  Creates or updates a file by path
+**/
+const uploadFile = async (octokit, repo, path, content) => {
+  const response = await octokit.request(
+    `PUT /repos/${repo}/contents/${path}`,
+    {
+      message: `Added file: ${path}`,
+      content
+    }
+  );
+  return response;
+};
+
+/**
+  Checks if a file is new. If so, it uploads it to the repo
+  and returns a file info object.
+**/
+const fileToFileInfo = async (octokit, repo, file, jsonPath) => {
+  // This is a new file
+  if (file.content) {
+    const fileName = createFilename(file.name);
+    const filePath = `content/files/${fileName}`;
+    await uploadFile(octokit, repo, filePath, file.content);
+    return {
+      type: "file",
+      name: basename(filePath),
+      src: relativePath(jsonPath, filePath)
+    };
+  }
+  // This is an old file
+  else {
+    return file;
+  }
+};
+
+/**
+  Runs through the JSON payload and uploads all files with new content to the repo
+  and replaces with an object with info about the file.
+**/
+const filesToFilesInfo = async (octokit, repo, data, jsonPath) => {
+  await iterateFiles(data, async file =>
+    fileToFileInfo(octokit, repo, file, jsonPath)
+  );
+};
+
+/**
+  Allows you to iterate through all files (single and array) in a dataset
+  and replace the file object with whatever is returned in a callback
+**/
+const iterateFiles = async (data, cb) => {
+  for (key in data) {
+    const value = data[key];
+
+    // Array of files
+    if (Array.isArray(value) && value[0].type === "file") {
+      const replacements = [];
+      for (let i = 0; i < value.length; i++) {
+        const replace = await cb(value[i]);
+        replacements.push(replace);
+      }
+      data[key] = replacements;
+    }
+    // Single file
+    else if (typeof value === "object" && value.type === "file") {
+      data[key] = await cb(value);
+    }
+  }
+};
+
 module.exports = {
   withId,
   base64ToJson,
@@ -100,5 +190,7 @@ module.exports = {
   success,
   maybeParseJson,
   resourcePayload,
-  removeExtraProperties
+  removeGeneratedProperties,
+  uploadFile,
+  filesToFilesInfo
 };

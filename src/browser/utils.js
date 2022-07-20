@@ -118,21 +118,94 @@ export const hasSettings = (settings, resource) =>
   settings.resources.hasOwnProperty(resource);
 
 /**
-  Used for adding extra stuff to the query or body of a request
-  based on the settings that the dataprovider was provided.
+  Add handler to the payload
 **/
-export const addSettingsToPayload = (settings, resource, payload) => {
-  // Add settings specific to the resource
-  if (settings && settings.resources && settings.resources[resource]) {
-    const resourceSettings = settings.resources[resource];
-
-    // Add handler to call
-    if (resourceSettings.handler) {
-      payload.handler = resourceSettings.handler;
-    }
-    // Otherwise default to file handler
-    else {
+export const addHandler = (settings, resource, payload) => {
+  if (hasSettings(settings, resource)) {
+    const settingsRes = settings.resources[resource];
+    if (settingsRes.handler) {
+      payload.handler = settingsRes.handler;
+    } else {
       payload.handler = "file";
     }
   }
+};
+
+/**
+  Add name to the payload if it's a json handler
+  If slug is set: use that attribute
+  If not set: name it data.json
+  All names will be timestamped and slugified on the server
+**/
+export const addName = (settings, resource, payload) => {
+  if (
+    !payload.data.name &&
+    hasSettings(settings, resource) &&
+    settings.resources[resource].handler === "json"
+  ) {
+    const settingsRes = settings.resources[resource];
+    if (settingsRes.slug) {
+      payload.data.name = payload.data[settingsRes.slug] + ".json";
+    } else {
+      params.data.name = "data.json";
+    }
+  }
+};
+
+const rawFileToBase64File = file =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      resolve({
+        type: "file",
+        name: file.path,
+        content: reader.result.split(",")[1]
+      });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+/**
+  Changes any rawFile file and image uploads (single or multiple)
+  into objects with a base64 string and file info to be used on the server.
+  These will be added to the GitHub repo and a path will be inserted
+  into the file.
+**/
+export const addFilesAndImages = (settings, resource, payload) => {
+  const promises = [];
+
+  for (const key in payload.data) {
+    const value = payload.data[key];
+
+    // Handle array of files
+    if (
+      Array.isArray(value) &&
+      typeof value[0] === "object" &&
+      value[0].rawFile
+    ) {
+      promises.push(
+        Promise.all(
+          value.map(file => {
+            return rawFileToBase64File(file.rawFile);
+          })
+        ).then(files => {
+          payload.data[key] = files;
+        })
+      );
+    }
+    // Handle single file
+    else if (typeof value === "object" && value.rawFile) {
+      promises.push(
+        rawFileToBase64File(value.rawFile).then(file => {
+          payload.data[key] = file;
+        })
+      );
+    }
+  }
+
+  // Wait for all the files to have base64'd and then return new payload
+  return Promise.all(promises).then(() => {
+    return payload;
+  });
 };

@@ -1,4 +1,3 @@
-const path = require("path");
 const jwtSimple = require("jwt-simple");
 const { Octokit } = require("octokit");
 const { Base64 } = require("js-base64");
@@ -10,7 +9,9 @@ const {
   success,
   error,
   resourcePayload,
-  removeExtraProperties
+  removeGeneratedProperties,
+  filesToFilesInfo,
+  uploadFile
 } = require("./utils");
 
 /**
@@ -87,7 +88,8 @@ const getOne = async (octokit, props) => {
     const response = await octokit.request(
       `GET /repos/${repo}/contents/content/${resource}/${id}`
     );
-    return success(200, { data: resourcePayload(response.data, handler) });
+    const data = await resourcePayload(response.data, handler);
+    return success(200, { data });
   } catch (e) {
     return error(e.status, e.message);
   }
@@ -134,7 +136,9 @@ const getList = async (octokit, props) => {
     );
     const { data } = response;
 
-    const parsedData = data.map(file => resourcePayload(file, handler));
+    const parsedData = await Promise.all(
+      data.map(file => resourcePayload(file, handler))
+    );
 
     // Sort depending on the sort order
     const isAsc = sortOrder === "ASC";
@@ -171,25 +175,34 @@ const create = async (octokit, props) => {
   }
 
   const filename = createFilename(data.name);
-
   const path = `content/${resource}/${filename}`;
+
+  await filesToFilesInfo(octokit, repo, data, path);
+
   try {
+    const dataToSave = await removeGeneratedProperties(data);
     const response = await octokit.request(
       `PUT /repos/${repo}/contents/${path}`,
       {
         message: `Created resource: ${path}`,
-        content: jsonToBase64(removeExtraProperties(data))
+        content: jsonToBase64(dataToSave)
       }
     );
 
-    let payload = null;
-    if (response.data.content) {
+    if (response.status === 201) {
       // On create or update, the API does not return contents,
       // so we add it manually via the extra option in resourcePayload
-      payload = resourcePayload(response.data.content, handler, data);
+      const payload = await resourcePayload(
+        response.data.content,
+        handler,
+        data
+      );
+      return success(201, {
+        data: payload
+      });
+    } else {
+      return error(response.status, response.data.message);
     }
-
-    return success(response.status, { data: payload });
   } catch (e) {
     return error(e.status, e.message);
   }
@@ -203,28 +216,38 @@ const update = async (octokit, props) => {
   const { resource, data, handler } = httpBody;
 
   try {
+    const path = `content/${resource}/${data.id}`;
+
     const getResponse = await octokit.request(
-      `GET /repos/${repo}/contents/content/${resource}/${data.id}`
+      `GET /repos/${repo}/contents/${path}`
     );
 
     if (getResponse.status !== 200) {
       return error(getResponse.status, getResponse.data.message);
     }
 
+    await filesToFilesInfo(octokit, repo, data, path);
+
+    const dataToSave = await removeGeneratedProperties(data);
     const response = await octokit.request(
-      `PUT /repos/${repo}/contents/content/${resource}/${data.id}`,
+      `PUT /repos/${repo}/contents/${path}`,
       {
+        sha: getResponse.data.sha,
         message: `Updated resource: ${resource}/${data.id}`,
-        content: jsonToBase64(removeExtraProperties(data)),
-        sha: getResponse.data.sha
+        content: jsonToBase64(dataToSave)
       }
     );
 
     if (response.status === 200) {
       // On create or update, the API does not return contents,
       // so we add it manually via the extra option in resourcePayload
+      const payload = await resourcePayload(
+        response.data.content,
+        handler,
+        data
+      );
       return success(response.status, {
-        data: resourcePayload(response.data.content, handler, data)
+        data: payload
       });
     } else {
       return error(response.status, response.data.message);

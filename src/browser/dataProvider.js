@@ -1,5 +1,5 @@
 import { HttpError } from "react-admin";
-import { get, put, del, addSettingsToPayload, hasSettings } from "./utils";
+import { get, put, del, addHandler, addName, addFilesAndImages } from "./utils";
 
 const buildDataProvider = (proxyUrl, settings) => {
   const { resources } = settings;
@@ -19,7 +19,7 @@ const buildDataProvider = (proxyUrl, settings) => {
         sortOrder: sort.order
       };
 
-      addSettingsToPayload(settings, resource, query);
+      addHandler(settings, resource, query);
 
       return get(proxyUrl, query);
     },
@@ -33,7 +33,7 @@ const buildDataProvider = (proxyUrl, settings) => {
         id: params.id
       };
 
-      addSettingsToPayload(settings, resource, query);
+      addHandler(settings, resource, query);
 
       return get(proxyUrl, query);
     },
@@ -49,39 +49,22 @@ const buildDataProvider = (proxyUrl, settings) => {
     /**
       Create a resource
     **/
-    create: (resource, params) => {
+    create: async (resource, params) => {
       const body = {
         resource: resource,
         data: params.data
       };
 
-      // Give the file a name if not there
-      // All these names will be slugified and timestamped on the server
-      if (!params.data.name) {
-        // JSON can be named automatically or with the slug setting
-        if (
-          hasSettings(settings, resource) &&
-          settings.resources[resource].handler === "json"
-        ) {
-          if (settings.resources[resource].slug) {
-            params.data.name =
-              params.data[settings.resources[resource].slug] + ".json";
-          } else {
-            params.data.name = "data.json";
-          }
-        }
-        // Other files must give a name property
-        else {
-          return Promise.reject(
-            new HttpError(
-              "You must provide a name property with an extension for the resource to be created",
-              500
-            )
-          );
-        }
+      addHandler(settings, resource, body);
+
+      addName(settings, resource, body);
+      if (!body.data.name) {
+        return Promise.reject(
+          new HttpError("No name property found or generated", 500)
+        );
       }
 
-      addSettingsToPayload(settings, resource, body);
+      await addFilesAndImages(settings, resource, body);
 
       return put(proxyUrl, body);
     },
@@ -95,7 +78,7 @@ const buildDataProvider = (proxyUrl, settings) => {
         data: params.data
       };
 
-      addSettingsToPayload(settings, resource, body);
+      addHandler(settings, resource, body);
 
       return put(proxyUrl, body);
     },
@@ -111,7 +94,7 @@ const buildDataProvider = (proxyUrl, settings) => {
         id: params.id
       };
 
-      addSettingsToPayload(settings, resource, query);
+      addHandler(settings, resource, query);
 
       return del(proxyUrl, query);
     }
