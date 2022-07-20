@@ -14,20 +14,20 @@ const proxy = async props => {
   });
 
   // Handle the request
-  const action =
-    prepared.httpQuery && prepared.httpQuery.action
-      ? prepared.httpQuery.action
+  const handler =
+    prepared.httpQuery && prepared.httpQuery.handler
+      ? prepared.httpQuery.handler
       : prepared.httpBody
-      ? prepared.httpBody.action
+      ? prepared.httpBody.handler
       : null;
 
-  if (action === "authenticate") {
+  if (handler === "auth") {
     return authenticate(prepared);
-  } else if (action === "contents") {
+  } else if (handler === "json" || handler === "file") {
     return contents(prepared);
     return res;
   } else {
-    return error(404, "Wrong action set in HTTP request");
+    return error(404, "Wrong handler set in HTTP request:", handler);
   }
 };
 

@@ -43,31 +43,28 @@ const removeExtraProperties = data => {
 };
 
 /**
-  Returns file info plus JSON contents of file if loadJson
+  Returns file info plus JSON contents of file if handler is json
 **/
-const resourcePayload = (responseData, loadJson, json) => {
-  const [
-    year,
-    month,
-    day,
-    hour,
-    minute,
-    second,
-    ...slugArray
-  ] = responseData.name.split("-");
-
+const resourcePayload = (responseData, handler, json) => {
   const payload = {
     id: responseData.name,
     name: responseData.name,
     path: responseData.path,
-    type: responseData.type,
-    createdAt: `${year}-${month}-${day}T${hour}:${minute}:${second}Z`,
-    slug: slugArray.join("-")
+    type: responseData.type
   };
 
+  // Check if filename has timestamp
+  const nameSplit = responseData.name.split("-");
+  if (nameSplit.length >= 7) {
+    const [year, month, day, hour, minute, second, ...slugArray] = nameSplit;
+    payload.createdAt = `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
+    payload.slug = slugArray.join("-");
+  }
+
+  // Check if we should add JSON contents to payload
   if (
     (json || responseData.content) &&
-    loadJson &&
+    handler === "json" &&
     responseData.name.endsWith(".json")
   ) {
     const contents = json ?? base64ToJson(responseData.content);

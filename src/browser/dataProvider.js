@@ -1,4 +1,5 @@
-import { get, put, del, addSettingsToPayload } from "./utils";
+import { HttpError } from "react-admin";
+import { get, put, del, addSettingsToPayload, hasSettings } from "./utils";
 
 const buildDataProvider = (proxyUrl, settings) => {
   const { resources } = settings;
@@ -11,7 +12,6 @@ const buildDataProvider = (proxyUrl, settings) => {
       const { pagination, sort } = params;
 
       const query = {
-        action: "contents",
         resource,
         page: pagination.page,
         perPage: pagination.perPage,
@@ -29,7 +29,6 @@ const buildDataProvider = (proxyUrl, settings) => {
     **/
     getOne: (resource, params) => {
       const query = {
-        action: "contents",
         resource: resource,
         id: params.id
       };
@@ -41,7 +40,6 @@ const buildDataProvider = (proxyUrl, settings) => {
 
     getMany: (resource, params) => {
       return get(proxyUrl, {
-        action: "contents",
         resource: resource,
         ids: JSON.stringify(params.ids)
       });
@@ -52,11 +50,40 @@ const buildDataProvider = (proxyUrl, settings) => {
       Create a resource
     **/
     create: (resource, params) => {
-      return put(proxyUrl, {
-        action: "contents",
+      const body = {
         resource: resource,
         data: params.data
-      });
+      };
+
+      // Give the file a name if not there
+      // All these names will be slugified and timestamped on the server
+      if (!params.data.name) {
+        // JSON can be named automatically or with the slug setting
+        if (
+          hasSettings(settings, resource) &&
+          settings.resources[resource].handler === "json"
+        ) {
+          if (settings.resources[resource].slug) {
+            params.data.name =
+              params.data[settings.resources[resource].slug] + ".json";
+          } else {
+            params.data.name = "data.json";
+          }
+        }
+        // Other files must give a name property
+        else {
+          return Promise.reject(
+            new HttpError(
+              "You must provide a name property with an extension for the resource to be created",
+              500
+            )
+          );
+        }
+      }
+
+      addSettingsToPayload(settings, resource, body);
+
+      return put(proxyUrl, body);
     },
 
     /**
@@ -64,7 +91,6 @@ const buildDataProvider = (proxyUrl, settings) => {
     **/
     update: (resource, params) => {
       const body = {
-        action: "contents",
         resource: resource,
         data: params.data
       };
@@ -81,7 +107,6 @@ const buildDataProvider = (proxyUrl, settings) => {
     **/
     delete: (resource, params) => {
       const query = {
-        action: "contents",
         resource: resource,
         id: params.id
       };

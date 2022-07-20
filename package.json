@@ -10,6 +10,9 @@
     ".": "./dist/index.js",
     "./api": "./src/node/index.js"
   },
+  "peerDependencies": {
+    "react-admin": "^4.2.3"
+  },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^22.0.1",
     "@rollup/plugin-node-resolve": "^13.3.0",

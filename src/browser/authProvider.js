@@ -4,7 +4,7 @@ const buildAuthProvider = authenticateUrl => {
   return {
     login: ({ username, password }) => {
       return post(authenticateUrl, {
-        action: "authenticate",
+        handler: "auth",
         id: username,
         password
       }).then(data => {

@@ -112,8 +112,10 @@ const getJwt = () => {
   return null;
 };
 
-export const hasSettings = (resources, resource) =>
-  typeof resources === "object" && resources.hasOwnProperty(resource);
+export const hasSettings = (settings, resource) =>
+  typeof settings === "object" &&
+  typeof settings.resources === "object" &&
+  settings.resources.hasOwnProperty(resource);
 
 /**
   Used for adding extra stuff to the query or body of a request
@@ -124,9 +126,13 @@ export const addSettingsToPayload = (settings, resource, payload) => {
   if (settings && settings.resources && settings.resources[resource]) {
     const resourceSettings = settings.resources[resource];
 
-    // smartJson
-    if (resourceSettings.loadJson) {
-      payload.loadJson = "true";
+    // Add handler to call
+    if (resourceSettings.handler) {
+      payload.handler = resourceSettings.handler;
+    }
+    // Otherwise default to file handler
+    else {
+      payload.handler = "file";
     }
   }
 };

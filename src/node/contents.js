@@ -15,7 +15,7 @@ const {
 
 /**
   Reads, creates, updates and deletes files from the GitHub contents API.
-  Has smart handling of JSON files if the `loadJson` boolean is passed in query or body
+  Handles both normal files and smart handling of JSON files based on handler setting
 **/
 const contents = async props => {
   const { httpMethod, httpQuery, httpBody, httpHeaders, token, secret } = props;
@@ -82,12 +82,12 @@ const contents = async props => {
 **/
 const getOne = async (octokit, props) => {
   const { repo } = props;
-  const { resource, id, loadJson } = props.httpQuery;
+  const { resource, id, handler } = props.httpQuery;
   try {
     const response = await octokit.request(
       `GET /repos/${repo}/contents/content/${resource}/${id}`
     );
-    return success(200, { data: resourcePayload(response.data, loadJson) });
+    return success(200, { data: resourcePayload(response.data, handler) });
   } catch (e) {
     return error(e.status, e.message);
   }
@@ -100,14 +100,14 @@ const getOne = async (octokit, props) => {
 **/
 const getMany = async (octokit, props) => {
   const { repo } = props;
-  const { resource, ids, loadJson } = props.httpQuery;
+  const { resource, ids, handler } = props.httpQuery;
   try {
     const data = await Promise.all(
       JSON.parse(ids).map(id => {
         return octokit
           .request(`GET /repos/${repo}/contents/content/${resource}/${id}`)
           .then(response => {
-            return resourcePayload(response.data, loadJson);
+            return resourcePayload(response.data, handler);
           });
       })
     );
@@ -124,7 +124,7 @@ const getMany = async (octokit, props) => {
 **/
 const getList = async (octokit, props) => {
   const { repo, httpQuery } = props;
-  const { resource, ids, sortField, sortOrder, loadJson } = httpQuery;
+  const { resource, ids, sortField, sortOrder, handler } = httpQuery;
   const page = parseInt(httpQuery.page) ?? 1;
   const perPage = parseInt(httpQuery.perPage) ?? 10;
 
@@ -134,7 +134,7 @@ const getList = async (octokit, props) => {
     );
     const { data } = response;
 
-    const parsedData = data.map(file => resourcePayload(file, loadJson));
+    const parsedData = data.map(file => resourcePayload(file, handler));
 
     // Sort depending on the sort order
     const isAsc = sortOrder === "ASC";
@@ -164,7 +164,7 @@ const getList = async (octokit, props) => {
 **/
 const create = async (octokit, props) => {
   const { repo } = props;
-  const { resource, data, loadJson } = props.httpBody;
+  const { resource, data, handler } = props.httpBody;
 
   if (!data.name) {
     return error(404, "POST body needs a name property");
@@ -186,7 +186,7 @@ const create = async (octokit, props) => {
     if (response.data.content) {
       // On create or update, the API does not return contents,
       // so we add it manually via the extra option in resourcePayload
-      payload = resourcePayload(response.data.content, loadJson, data);
+      payload = resourcePayload(response.data.content, handler, data);
     }
 
     return success(response.status, { data: payload });
@@ -200,7 +200,7 @@ const create = async (octokit, props) => {
 **/
 const update = async (octokit, props) => {
   const { repo, httpBody } = props;
-  const { resource, data, loadJson } = httpBody;
+  const { resource, data, handler } = httpBody;
 
   try {
     const getResponse = await octokit.request(
@@ -224,7 +224,7 @@ const update = async (octokit, props) => {
       // On create or update, the API does not return contents,
       // so we add it manually via the extra option in resourcePayload
       return success(response.status, {
-        data: resourcePayload(response.data.content, loadJson, data)
+        data: resourcePayload(response.data.content, handler, data)
       });
     } else {
       return error(response.status, response.data.message);
