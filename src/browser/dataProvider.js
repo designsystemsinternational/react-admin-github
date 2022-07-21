@@ -72,13 +72,14 @@ const buildDataProvider = (proxyUrl, settings) => {
     /**
       Update a resource
     **/
-    update: (resource, params) => {
+    update: async (resource, params) => {
       const body = {
         resource: resource,
         data: params.data
       };
 
       addHandler(settings, resource, body);
+      await addFilesAndImages(settings, resource, body);
 
       return put(proxyUrl, body);
     },
