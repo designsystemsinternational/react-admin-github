@@ -177,10 +177,13 @@ const create = async (octokit, props) => {
   const filename = createFilename(data.name);
   const path = `content/${resource}/${filename}`;
 
-  await filesToFilesInfo(octokit, repo, data, path);
+  if (handler === "json") {
+    await filesToFilesInfo(octokit, repo, data, path);
+  }
+
+  const dataToSave = await removeGeneratedProperties(data);
 
   try {
-    const dataToSave = await removeGeneratedProperties(data);
     const response = await octokit.request(
       `PUT /repos/${repo}/contents/${path}`,
       {
@@ -190,10 +193,8 @@ const create = async (octokit, props) => {
     );
 
     if (response.status === 201) {
-      // On create or update, the API does not return contents,
-      // so we add it manually via the extra option in resourcePayload
       const payload = await resourcePayload(
-        response.data.content,
+        response.data,
         handler,
         url,
         secret,
@@ -228,7 +229,9 @@ const update = async (octokit, props) => {
       return error(getResponse.status, getResponse.data.message);
     }
 
-    await filesToFilesInfo(octokit, repo, data, path);
+    if (handler === "json") {
+      await filesToFilesInfo(octokit, repo, data, path);
+    }
 
     const dataToSave = await removeGeneratedProperties(data);
     const response = await octokit.request(
@@ -241,8 +244,6 @@ const update = async (octokit, props) => {
     );
 
     if (response.status === 200) {
-      // On create or update, the API does not return contents,
-      // so we add it manually via the extra option in resourcePayload
       const payload = await resourcePayload(
         response.data.content,
         handler,
@@ -257,6 +258,7 @@ const update = async (octokit, props) => {
       return error(response.status, response.data.message);
     }
   } catch (e) {
+    console.log(e);
     return error(e.status, e.message);
   }
 };
@@ -265,7 +267,7 @@ const update = async (octokit, props) => {
   Deletes a resource
 **/
 const del = async (octokit, props) => {
-  const { repo } = props;
+  const { repo, handler, url, secret } = props;
   const { resource, id } = props.httpQuery;
 
   try {
@@ -279,8 +281,18 @@ const del = async (octokit, props) => {
         sha: getResponse.data.sha
       }
     );
-    const data = base64ToJson(getResponse.data.content);
-    return success(response.status ?? getResponse.status, { data });
+
+    if (response.status === 200) {
+      const payload = await resourcePayload(
+        getResponse.data,
+        handler,
+        url,
+        secret
+      );
+      return success(200, { data: payload });
+    } else {
+      return error(response.status, response.data.message);
+    }
   } catch (e) {
     return error(e.status, e.message);
   }
