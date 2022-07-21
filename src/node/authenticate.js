@@ -32,8 +32,7 @@ const authenticate = async props => {
   }
 
   // Create JWT
-  const jwtPayload = { id };
-  const jwt = jwtSimple.encode(jwtPayload, secret);
+  const jwt = jwtSimple.encode({ id }, secret);
 
   // Return object
   return success(

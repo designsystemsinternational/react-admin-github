@@ -82,13 +82,13 @@ const contents = async props => {
   Gets a single resource by ID
 **/
 const getOne = async (octokit, props) => {
-  const { repo } = props;
+  const { url, repo, secret } = props;
   const { resource, id, handler } = props.httpQuery;
   try {
     const response = await octokit.request(
       `GET /repos/${repo}/contents/content/${resource}/${id}`
     );
-    const data = await resourcePayload(response.data, handler);
+    const data = await resourcePayload(response.data, handler, url, secret);
     return success(200, { data });
   } catch (e) {
     return error(e.status, e.message);
@@ -101,7 +101,7 @@ const getOne = async (octokit, props) => {
   I think that's okay since this is often 2-5 resources being loaded.
 **/
 const getMany = async (octokit, props) => {
-  const { repo } = props;
+  const { url, repo, secret } = props;
   const { resource, ids, handler } = props.httpQuery;
   try {
     const data = await Promise.all(
@@ -109,7 +109,7 @@ const getMany = async (octokit, props) => {
         return octokit
           .request(`GET /repos/${repo}/contents/content/${resource}/${id}`)
           .then(response => {
-            return resourcePayload(response.data, handler);
+            return resourcePayload(response.data, handler, url, secret);
           });
       })
     );
@@ -125,7 +125,7 @@ const getMany = async (octokit, props) => {
   We load all and paginate in this API function. Not the greatest.
 **/
 const getList = async (octokit, props) => {
-  const { repo, httpQuery } = props;
+  const { url, repo, secret, httpQuery } = props;
   const { resource, ids, sortField, sortOrder, handler } = httpQuery;
   const page = parseInt(httpQuery.page) ?? 1;
   const perPage = parseInt(httpQuery.perPage) ?? 10;
@@ -137,7 +137,7 @@ const getList = async (octokit, props) => {
     const { data } = response;
 
     const parsedData = await Promise.all(
-      data.map(file => resourcePayload(file, handler))
+      data.map(file => resourcePayload(file, handler, url, secret))
     );
 
     // Sort depending on the sort order
@@ -167,7 +167,7 @@ const getList = async (octokit, props) => {
   Creates a resource
 **/
 const create = async (octokit, props) => {
-  const { repo } = props;
+  const { url, repo, secret } = props;
   const { resource, data, handler } = props.httpBody;
 
   if (!data.name) {
@@ -195,6 +195,8 @@ const create = async (octokit, props) => {
       const payload = await resourcePayload(
         response.data.content,
         handler,
+        url,
+        secret,
         data
       );
       return success(201, {
@@ -212,7 +214,7 @@ const create = async (octokit, props) => {
   Updates a resource
 **/
 const update = async (octokit, props) => {
-  const { repo, httpBody } = props;
+  const { url, repo, secret, httpBody } = props;
   const { resource, data, handler } = httpBody;
 
   try {
@@ -244,6 +246,8 @@ const update = async (octokit, props) => {
       const payload = await resourcePayload(
         response.data.content,
         handler,
+        url,
+        secret,
         data
       );
       return success(response.status, {

@@ -30,6 +30,8 @@ The `dataProvider` is used to load both normal files and resource data stored in
 
 When communicating with the GitHub API, you need a personal access token or App secret, and these cannot be exposed on your static website. Therefore, this package ships with a single function that can be used in any serverless framework (AWS Lambda, Netlify Functions, etc) or cloud server (EC2, Heroku, etc) to proxy calls to the GitHub API. This function holds all the functionality needed to run the `authProvider` and `dataProvider`.
 
+> TODO: base64!
+
 ## Example
 
 This example demonstrates how to use this package:

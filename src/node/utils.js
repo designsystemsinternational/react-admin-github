@@ -1,6 +1,7 @@
+const { join, basename, relative, dirname, resolve } = require("path");
 const { Base64 } = require("js-base64");
 const slugify = require("slugify");
-const { join, basename, relative, dirname } = require("path");
+const jwtSimple = require("jwt-simple");
 
 const withId = (data, id) => Object.assign({}, data, { id });
 
@@ -50,14 +51,27 @@ const removeGeneratedProperties = async data => {
   return copy;
 };
 
+/**
+  Finds the relative path from a file to a file.
+  Helpful for adding links to images in a from JSON to a to image
+**/
 const relativePath = (from, to) =>
   join(relative(dirname(from), dirname(to)), basename(to));
+
+/**
+  Turns a relative path into an absolute path based on an origin path
+  The originFile path cannot have a starting slash and should have an ext
+**/
+const absolutePath = (originFile, relative) => {
+  const absolute = resolve(`/${dirname(originFile)}`, relative);
+  return absolute.substring(1);
+};
 
 /**
   Constructs `data` payload for a single React Admin resource
    based on the response from the GitHub API.
 **/
-const resourcePayload = async (responseData, handler, json) => {
+const resourcePayload = async (responseData, handler, url, secret, json) => {
   const payload = {
     id: responseData.name,
     name: responseData.name,
@@ -83,8 +97,12 @@ const resourcePayload = async (responseData, handler, json) => {
 
     // Add URL property to all single files or array of files
     await iterateFiles(contents, file => {
+      const filePath = absolutePath(payload.path, file.src);
+      const jwt = jwtSimple.encode({ path: filePath }, secret);
+      const fileUrl =
+        url + `?handler=preview&path=${filePath}&previewToken=${jwt}`;
       return Object.assign({}, file, {
-        url: "https://assets.runemadsen.com/front/pds.jpg"
+        url: fileUrl
       });
     });
 

@@ -1,12 +1,22 @@
 const jwtSimple = require("jwt-simple");
 const { Octokit } = require("octokit");
 const mime = require("mime-types");
+const { error } = require("./utils");
 
 const preview = async props => {
   const { httpQuery, repo, token, secret } = props;
-  const { path } = httpQuery;
+  const { path, previewToken } = httpQuery;
 
-  // Check that the JWT is for this file and is still valid
+  // Check that the JWT is for this file
+  // TODO: Add timestamp so they only last for n minutes
+  try {
+    const jwt = jwtSimple.decode(previewToken, secret);
+    if (!jwt || jwt.path !== path) {
+      return error(404, "Access denied");
+    }
+  } catch (e) {
+    return error(401, "Error decoding JWT");
+  }
 
   // Proxy file down to the client
   const octokit = new Octokit({ auth: token });
