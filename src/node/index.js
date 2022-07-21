@@ -1,5 +1,6 @@
 const authenticate = require("./authenticate");
 const contents = require("./contents");
+const preview = require("./preview");
 const { error, maybeParseJson } = require("./utils");
 
 /**
@@ -21,14 +22,24 @@ const proxy = async props => {
       ? prepared.httpBody.handler
       : null;
 
+  let response;
+
   if (handler === "auth") {
-    return authenticate(prepared);
+    response = await authenticate(prepared);
   } else if (handler === "json" || handler === "file") {
-    return contents(prepared);
-    return res;
+    response = await contents(prepared);
+  } else if (handler === "preview") {
+    response = await preview(prepared);
   } else {
-    return error(404, "Wrong handler set in HTTP request:", handler);
+    response = error(404, "Wrong handler set in HTTP request:", handler);
   }
+
+  // If body is an object, we expect it to be converted to JSON string
+  if (typeof response.body === "object") {
+    response.body = JSON.stringify(response.body);
+  }
+
+  return response;
 };
 
 module.exports = proxy;
