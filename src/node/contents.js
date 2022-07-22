@@ -2,16 +2,14 @@ const jwtSimple = require("jwt-simple");
 const { Octokit } = require("octokit");
 const { Base64 } = require("js-base64");
 const {
-  withId,
   base64ToJson,
   jsonToBase64,
-  createFilename,
   success,
   error,
-  resourcePayload,
-  removeGeneratedProperties,
-  filesToFilesInfo,
-  uploadFile
+  beforeResponse,
+  beforeSave,
+  uploadFile,
+  timestamp
 } = require("./utils");
 
 /**
@@ -88,7 +86,7 @@ const getOne = async (octokit, props) => {
     const response = await octokit.request(
       `GET /repos/${repo}/contents/content/${resource}/${id}`
     );
-    const data = await resourcePayload(response.data, handler, url, secret);
+    const data = await beforeResponse(response.data, handler, url, secret);
     return success(200, { data });
   } catch (e) {
     return error(e.status, e.message);
@@ -109,7 +107,7 @@ const getMany = async (octokit, props) => {
         return octokit
           .request(`GET /repos/${repo}/contents/content/${resource}/${id}`)
           .then(response => {
-            return resourcePayload(response.data, handler, url, secret);
+            return beforeResponse(response.data, handler, url, secret);
           });
       })
     );
@@ -136,8 +134,20 @@ const getList = async (octokit, props) => {
     );
     const { data } = response;
 
+    // If json handler, only return json files
+    let filteredData = data;
+    if (handler === "json") {
+      filteredData = [];
+      for (let i = 0; i < data.length; i++) {
+        if (data[i].name.endsWith(".json")) {
+          filteredData.push(data[i]);
+        }
+      }
+    }
+
+    // Turn into payloads
     const parsedData = await Promise.all(
-      data.map(file => resourcePayload(file, handler, url, secret))
+      filteredData.map(file => beforeResponse(file, handler, url, secret))
     );
 
     // Sort depending on the sort order
@@ -174,40 +184,33 @@ const create = async (octokit, props) => {
     return error(404, "POST body needs a name property");
   }
 
-  const filename = createFilename(data.name);
-  const path = `content/${resource}/${filename}`;
+  data.name = `${timestamp()}-${data.name}`;
+  const path = `content/${resource}/${data.name}`;
+  const dataToSave = await beforeSave(octokit, repo, data, handler, path);
 
-  if (handler === "json") {
-    await filesToFilesInfo(octokit, repo, data, path);
-  }
-
-  const dataToSave = await removeGeneratedProperties(data);
-
+  let response;
   try {
-    const response = await octokit.request(
-      `PUT /repos/${repo}/contents/${path}`,
-      {
-        message: `Created resource: ${path}`,
-        content: jsonToBase64(dataToSave)
-      }
-    );
-
-    if (response.status === 201) {
-      const payload = await resourcePayload(
-        response.data,
-        handler,
-        url,
-        secret,
-        data
-      );
-      return success(201, {
-        data: payload
-      });
-    } else {
-      return error(response.status, response.data.message);
-    }
+    response = await octokit.request(`PUT /repos/${repo}/contents/${path}`, {
+      message: `Created resource: ${path}`,
+      content: jsonToBase64(dataToSave)
+    });
   } catch (e) {
     return error(e.status, e.message);
+  }
+
+  if (response.status === 201) {
+    const payload = await beforeResponse(
+      response.data.content,
+      handler,
+      url,
+      secret,
+      dataToSave
+    );
+    return success(201, {
+      data: payload
+    });
+  } else {
+    return error(response.status, response.data.message);
   }
 };
 
@@ -218,9 +221,12 @@ const update = async (octokit, props) => {
   const { url, repo, secret, httpBody } = props;
   const { resource, data, handler } = httpBody;
 
-  try {
-    const path = `content/${resource}/${data.id}`;
+  const path = `content/${resource}/${data.id}`;
+  const dataToSave = await beforeSave(octokit, repo, data, handler, path);
 
+  let response;
+
+  try {
     const getResponse = await octokit.request(
       `GET /repos/${repo}/contents/${path}`
     );
@@ -229,37 +235,28 @@ const update = async (octokit, props) => {
       return error(getResponse.status, getResponse.data.message);
     }
 
-    if (handler === "json") {
-      await filesToFilesInfo(octokit, repo, data, path);
-    }
-
-    const dataToSave = await removeGeneratedProperties(data);
-    const response = await octokit.request(
-      `PUT /repos/${repo}/contents/${path}`,
-      {
-        sha: getResponse.data.sha,
-        message: `Updated resource: ${resource}/${data.id}`,
-        content: jsonToBase64(dataToSave)
-      }
-    );
-
-    if (response.status === 200) {
-      const payload = await resourcePayload(
-        response.data.content,
-        handler,
-        url,
-        secret,
-        data
-      );
-      return success(response.status, {
-        data: payload
-      });
-    } else {
-      return error(response.status, response.data.message);
-    }
+    response = await octokit.request(`PUT /repos/${repo}/contents/${path}`, {
+      sha: getResponse.data.sha,
+      message: `Updated resource: ${resource}/${data.id}`,
+      content: jsonToBase64(dataToSave)
+    });
   } catch (e) {
-    console.log(e);
     return error(e.status, e.message);
+  }
+
+  if (response.status === 200) {
+    const payload = await beforeResponse(
+      response.data.content,
+      handler,
+      url,
+      secret,
+      dataToSave
+    );
+    return success(response.status, {
+      data: payload
+    });
+  } else {
+    return error(response.status, response.data.message);
   }
 };
 
@@ -283,7 +280,7 @@ const del = async (octokit, props) => {
     );
 
     if (response.status === 200) {
-      const payload = await resourcePayload(
+      const payload = await beforeResponse(
         getResponse.data,
         handler,
         url,

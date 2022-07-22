@@ -24,7 +24,8 @@ The `dataProvider` is used to load both normal files and resource data stored in
 - **You can have a maximum of 1000 resources in the same resource folder**. This is because neither the Git Tree nor the Git Content API on GitHub supports pagination on file data.
 - **You can only show a single field value and a `createdAt` timestamp in the resource list**. This is because we cannot load all resource JSON files via the GitHub API when listing resources, so this package encodes a timestamp and a field value into the filename itself (e.g. `2022-07-05-09-00-00-My-amazing-post.json`). You can set which field value to use when setting up the API functions (see below).
 
-> TODO: File uploads: How they are handled.
+> TODO: File uploads: How they are handled.\
+> TODO: File upload path settings and template strings
 
 ### 3. API function
 

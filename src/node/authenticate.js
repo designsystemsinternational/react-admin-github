@@ -10,9 +10,17 @@ const authenticate = async props => {
 
   // Load JSON file from GitHub
   const octokit = new Octokit({ auth: token });
-  const { data, status } = await octokit.request(
-    `GET /repos/${repo}/contents/content/users/${id}.json`
-  );
+
+  let response;
+  try {
+    response = await octokit.request(
+      `GET /repos/${repo}/contents/content/users/${id}.json`
+    );
+  } catch (e) {
+    return error(e.status, e.message);
+  }
+
+  const { data, status } = response;
 
   // Check that the file exists
   if (status !== 200 || !data.content) {

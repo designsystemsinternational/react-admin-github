@@ -1,25 +1,32 @@
-import { HttpError } from "react-admin";
-import { get, put, del, addHandler, addName, addFilesAndImages } from "./utils";
+import {
+  get,
+  put,
+  del,
+  getSettings,
+  getResourceSettings,
+  addNameAndSlug,
+  convertNewFiles
+} from "./utils";
 
-const buildDataProvider = (proxyUrl, settings) => {
-  const { resources } = settings;
+const buildDataProvider = (proxyUrl, paramSettings) => {
+  const settings = getSettings(paramSettings);
 
   return {
     /**
       Get a list of resources.
     **/
     getList: (resource, params) => {
+      const resSettings = getResourceSettings(settings, resource);
       const { pagination, sort } = params;
 
       const query = {
+        handler: resSettings.handler,
         resource,
         page: pagination.page,
         perPage: pagination.perPage,
         sortField: sort.field,
         sortOrder: sort.order
       };
-
-      addHandler(settings, resource, query);
 
       return get(proxyUrl, query);
     },
@@ -28,18 +35,22 @@ const buildDataProvider = (proxyUrl, settings) => {
       Get a single resource
     **/
     getOne: (resource, params) => {
+      const resSettings = getResourceSettings(settings, resource);
+
       const query = {
+        handler: resSettings.handler,
         resource: resource,
         id: params.id
       };
-
-      addHandler(settings, resource, query);
 
       return get(proxyUrl, query);
     },
 
     getMany: (resource, params) => {
+      const resSettings = getResourceSettings(settings, resource);
+
       return get(proxyUrl, {
+        handler: resSettings.handler,
         resource: resource,
         ids: JSON.stringify(params.ids)
       });
@@ -50,21 +61,16 @@ const buildDataProvider = (proxyUrl, settings) => {
       Create a resource
     **/
     create: async (resource, params) => {
+      const resSettings = getResourceSettings(settings, resource);
+
       const body = {
+        handler: resSettings.handler,
         resource: resource,
         data: params.data
       };
 
-      addHandler(settings, resource, body);
-
-      addName(settings, resource, body);
-      if (!body.data.name) {
-        return Promise.reject(
-          new HttpError("No name property found or generated", 500)
-        );
-      }
-
-      await addFilesAndImages(settings, resource, body);
+      addNameAndSlug(resSettings, body);
+      await convertNewFiles(settings, resSettings, resource, body);
 
       return put(proxyUrl, body);
     },
@@ -73,13 +79,15 @@ const buildDataProvider = (proxyUrl, settings) => {
       Update a resource
     **/
     update: async (resource, params) => {
+      const resSettings = getResourceSettings(settings, resource);
+
       const body = {
+        handler: resSettings.handler,
         resource: resource,
         data: params.data
       };
 
-      addHandler(settings, resource, body);
-      await addFilesAndImages(settings, resource, body);
+      await convertNewFiles(settings, resSettings, resource, body);
 
       return put(proxyUrl, body);
     },
@@ -90,12 +98,13 @@ const buildDataProvider = (proxyUrl, settings) => {
       Delete a resource
     **/
     delete: (resource, params) => {
+      const resSettings = getResourceSettings(settings, resource);
+
       const query = {
+        handler: resSettings.handler,
         resource: resource,
         id: params.id
       };
-
-      addHandler(settings, resource, query);
 
       return del(proxyUrl, query);
     }

@@ -1,7 +1,34 @@
+import slugify from "slugify";
+
 /**
-  Make a url.com?with=query&params=yeah
+  Defaults
 **/
-const urlWithQuery = (url, query) => url + "?" + new URLSearchParams(query);
+
+const defaultSettings = {
+  filesPath: "files"
+};
+
+const defaultResourceSettings = {
+  handler: "file"
+};
+
+export const getSettings = settings => {
+  if (settings) {
+    return Object.assign({}, defaultSettings, settings);
+  }
+  return defaultSettings;
+};
+
+export const getResourceSettings = (settings, resource) => {
+  if (settings?.resources?.[resource]) {
+    return Object.assign(
+      {},
+      defaultResourceSettings,
+      settings.resources[resource]
+    );
+  }
+  return defaultResourceSettings;
+};
 
 /**
   Make a GET request with fetch
@@ -112,59 +139,22 @@ const getJwt = () => {
   return null;
 };
 
-export const hasSettings = (settings, resource) =>
-  typeof settings === "object" &&
-  typeof settings.resources === "object" &&
-  settings.resources.hasOwnProperty(resource);
-
 /**
-  Add handler to the payload
+  Adds name and slug to the resource payload. Only used for create.
 **/
-export const addHandler = (settings, resource, payload) => {
-  if (hasSettings(settings, resource)) {
-    const settingsRes = settings.resources[resource];
-    if (settingsRes.handler) {
-      payload.handler = settingsRes.handler;
+export const addNameAndSlug = (resSettings, payload) => {
+  if (resSettings.handler === "json") {
+    if (resSettings.slug) {
+      payload.data.slug = makeSlug(payload.data[resSettings.slug]);
+      payload.data.name = payload.data.slug + ".json";
     } else {
-      payload.handler = "file";
-    }
-  }
-};
-
-/**
-  Add name to the payload if it's a json handler
-  If slug is set: use that attribute
-  If not set: name it data.json
-  All names will be timestamped and slugified on the server
-**/
-export const addName = (settings, resource, payload) => {
-  if (
-    !payload.data.name &&
-    hasSettings(settings, resource) &&
-    settings.resources[resource].handler === "json"
-  ) {
-    const settingsRes = settings.resources[resource];
-    if (settingsRes.slug) {
-      payload.data.name = payload.data[settingsRes.slug] + ".json";
-    } else {
+      params.data.slug = "data";
       params.data.name = "data.json";
     }
+  } else if (!payload.data.name || !payload.data.slug) {
+    throw "Uploaded resource data does not have name or slug";
   }
 };
-
-const rawFileToBase64File = file =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      resolve({
-        type: "file",
-        name: file.path,
-        content: reader.result.split(",")[1]
-      });
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 
 /**
   Changes any rawFile file and image uploads (single or multiple)
@@ -172,7 +162,18 @@ const rawFileToBase64File = file =>
   These will be added to the GitHub repo and a path will be inserted
   into the file.
 **/
-export const addFilesAndImages = (settings, resource, payload) => {
+export const convertNewFiles = async (
+  settings,
+  resSettings,
+  resource,
+  payload
+) => {
+  // Find the path where we upload the embedded files
+  const filesPath = template(resSettings.filesPath ?? settings.filesPath, {
+    resource,
+    slug: payload.data.slug
+  });
+
   const promises = [];
 
   for (const key in payload.data) {
@@ -187,7 +188,7 @@ export const addFilesAndImages = (settings, resource, payload) => {
       promises.push(
         Promise.all(
           value.map(file => {
-            return rawFileToBase64File(file.rawFile);
+            return rawFileToBase64File(file.rawFile, filesPath);
           })
         ).then(files => {
           payload.data[key] = files;
@@ -197,7 +198,7 @@ export const addFilesAndImages = (settings, resource, payload) => {
     // Handle single file
     else if (typeof value === "object" && value.rawFile) {
       promises.push(
-        rawFileToBase64File(value.rawFile).then(file => {
+        rawFileToBase64File(value.rawFile, filesPath).then(file => {
           payload.data[key] = file;
         })
       );
@@ -209,3 +210,34 @@ export const addFilesAndImages = (settings, resource, payload) => {
     return payload;
   });
 };
+
+const rawFileToBase64File = (file, path) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      resolve({
+        type: "file",
+        name: makeSlug(file.path),
+        path,
+        content: reader.result.split(",")[1]
+      });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+/**
+  Takes a string and replaces every [key] with value from obj
+**/
+const template = (org, obj) => {
+  let str = org;
+  for (const key in obj) {
+    str = str.replaceAll(`[${key}]`, obj[key]);
+  }
+  return str;
+};
+
+/**
+  Turns a string into something that can be used in a filename
+**/
+const makeSlug = str => slugify(str, { lower: true, trim: true });

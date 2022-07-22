@@ -7,8 +7,6 @@ const preview = async props => {
   const { httpQuery, repo, token, secret } = props;
   const { path, previewToken } = httpQuery;
 
-  // Check that the JWT is for this file
-  // TODO: Add timestamp so they only last for n minutes
   try {
     const jwt = jwtSimple.decode(previewToken, secret);
     if (!jwt || jwt.path !== path) {
