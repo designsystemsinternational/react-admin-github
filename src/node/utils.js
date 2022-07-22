@@ -1,6 +1,7 @@
 const { join, basename, relative, dirname, resolve } = require("path");
 const { Base64 } = require("js-base64");
 const jwtSimple = require("jwt-simple");
+const { changeObjects } = require("../shared/utils");
 
 /**
   Simple utils
@@ -19,25 +20,29 @@ const beforeSave = async (octokit, repo, data, handler, jsonPath) => {
 
   // If JSON, handle files including newly uploaded files
   if (handler === "json") {
-    await iterateFiles(copy, async orgFile => {
-      const file = Object.assign({}, orgFile);
+    await changeObjects(
+      copy,
+      obj => obj.type === "file",
+      async orgFile => {
+        const file = Object.assign({}, orgFile);
 
-      // This is a new file
-      if (file.content) {
-        const fullName = `${timestamp()}-${file.name}`;
-        const fullPath = join("content", file.path, fullName);
-        await uploadFile(octokit, repo, fullPath, file.content);
-        delete file.content;
-        file.src = relativePath(jsonPath, fullPath);
+        // This is a new file
+        if (file.content) {
+          const fullName = `${timestamp()}-${file.name}`;
+          const fullPath = join("content", file.path, fullName);
+          await uploadFile(octokit, repo, fullPath, file.content);
+          delete file.content;
+          file.src = relativePath(jsonPath, fullPath);
+        }
+
+        // Delete file properties
+        delete file.url;
+        delete file.name;
+        delete file.path;
+
+        return file;
       }
-
-      // Delete file properties
-      delete file.url;
-      delete file.name;
-      delete file.path;
-
-      return file;
-    });
+    );
   }
 
   // Remove generate main properties
@@ -90,16 +95,22 @@ const beforeResponse = async (githubFile, handler, url, secret, json) => {
     const contents = json ?? base64ToJson(githubFile.content);
 
     // Add URL property to all single files or array of files
-    await iterateFiles(contents, file => {
-      const filePath = absolutePath(payload.path, file.src);
-      const jwt = jwtSimple.encode({ path: filePath }, secret);
-      const fileUrl =
-        url + `?handler=preview&path=${filePath}&previewToken=${jwt}`;
-      return Object.assign({}, file, {
-        url: fileUrl,
-        name: basename(filePath)
-      });
-    });
+    await changeObjects(
+      contents,
+      obj => {
+        return obj.type === "file";
+      },
+      file => {
+        const filePath = absolutePath(payload.path, file.src);
+        const jwt = jwtSimple.encode({ path: filePath }, secret);
+        const fileUrl =
+          url + `?handler=preview&path=${filePath}&previewToken=${jwt}`;
+        return Object.assign({}, file, {
+          url: fileUrl,
+          name: basename(filePath)
+        });
+      }
+    );
 
     Object.assign(payload, contents);
   }
@@ -163,30 +174,6 @@ const uploadFile = async (octokit, repo, path, content) => {
     }
   );
   return response;
-};
-
-/**
-  Allows you to iterate through all files (single and array) in a dataset
-  and replace the file object with whatever is returned in a callback
-**/
-const iterateFiles = async (data, cb) => {
-  for (const key in data) {
-    const value = data[key];
-
-    // Array of files
-    if (Array.isArray(value) && value[0].type === "file") {
-      const replacements = [];
-      for (let i = 0; i < value.length; i++) {
-        const replace = await cb(value[i]);
-        replacements.push(replace);
-      }
-      data[key] = replacements;
-    }
-    // Single file
-    else if (typeof value === "object" && value.type === "file") {
-      data[key] = await cb(value);
-    }
-  }
 };
 
 module.exports = {

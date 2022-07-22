@@ -1,4 +1,5 @@
 import slugify from "slugify";
+import { changeObjects } from "../shared/utils";
 
 /**
   Defaults
@@ -174,57 +175,27 @@ export const convertNewFiles = async (
     slug: payload.data.slug
   });
 
-  const promises = [];
+  await changeObjects(
+    payload.data,
+    obj => !!obj.rawFile,
+    async file =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          resolve({
+            type: "file",
+            name: makeSlug(file.rawFile.path),
+            path: filesPath,
+            content: reader.result.split(",")[1]
+          });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file.rawFile);
+      })
+  );
 
-  for (const key in payload.data) {
-    const value = payload.data[key];
-
-    // Handle array of files
-    if (
-      Array.isArray(value) &&
-      typeof value[0] === "object" &&
-      value[0].rawFile
-    ) {
-      promises.push(
-        Promise.all(
-          value.map(file => {
-            return rawFileToBase64File(file.rawFile, filesPath);
-          })
-        ).then(files => {
-          payload.data[key] = files;
-        })
-      );
-    }
-    // Handle single file
-    else if (typeof value === "object" && value.rawFile) {
-      promises.push(
-        rawFileToBase64File(value.rawFile, filesPath).then(file => {
-          payload.data[key] = file;
-        })
-      );
-    }
-  }
-
-  // Wait for all the files to have base64'd and then return new payload
-  return Promise.all(promises).then(() => {
-    return payload;
-  });
+  return payload;
 };
-
-const rawFileToBase64File = (file, path) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      resolve({
-        type: "file",
-        name: makeSlug(file.path),
-        path,
-        content: reader.result.split(",")[1]
-      });
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 
 /**
   Takes a string and replaces every [key] with value from obj

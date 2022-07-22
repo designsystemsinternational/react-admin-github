@@ -82,15 +82,18 @@ const contents = async props => {
 const getOne = async (octokit, props) => {
   const { url, repo, secret } = props;
   const { resource, id, handler } = props.httpQuery;
+
+  let response;
   try {
-    const response = await octokit.request(
+    response = await octokit.request(
       `GET /repos/${repo}/contents/content/${resource}/${id}`
     );
-    const data = await beforeResponse(response.data, handler, url, secret);
-    return success(200, { data });
   } catch (e) {
     return error(e.status, e.message);
   }
+
+  const data = await beforeResponse(response.data, handler, url, secret);
+  return success(200, { data });
 };
 
 /**
@@ -128,49 +131,56 @@ const getList = async (octokit, props) => {
   const page = parseInt(httpQuery.page) ?? 1;
   const perPage = parseInt(httpQuery.perPage) ?? 10;
 
+  let response;
   try {
-    const response = await octokit.request(
+    response = await octokit.request(
       `GET /repos/${repo}/contents/content/${resource}`
     );
-    const { data } = response;
+  } catch (e) {
+    // We allow the request to 404 in case you haven't created the resource folder yet
+    if (e.status === 404) {
+      response = { data: [] };
+    } else {
+      return error(e.status, e.message);
+    }
+  }
 
-    // If json handler, only return json files
-    let filteredData = data;
-    if (handler === "json") {
-      filteredData = [];
-      for (let i = 0; i < data.length; i++) {
-        if (data[i].name.endsWith(".json")) {
-          filteredData.push(data[i]);
-        }
+  const { data } = response;
+
+  // If json handler, only return json files
+  let filteredData = data;
+  if (handler === "json") {
+    filteredData = [];
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].name.endsWith(".json")) {
+        filteredData.push(data[i]);
       }
     }
-
-    // Turn into payloads
-    const parsedData = await Promise.all(
-      filteredData.map(file => beforeResponse(file, handler, url, secret))
-    );
-
-    // Sort depending on the sort order
-    const isAsc = sortOrder === "ASC";
-    parsedData.sort((a, b) => {
-      if (a[sortField] < b[sortField]) {
-        return isAsc ? -1 : 1;
-      } else if (a[sortField] > b[sortField]) {
-        return isAsc ? 1 : -1;
-      } else {
-        return 0;
-      }
-    });
-
-    // Pagination
-    const pageStartIdx = (page - 1) * perPage;
-    const pageEndIdx = pageStartIdx + perPage;
-    const pageData = parsedData.slice(pageStartIdx, pageEndIdx);
-
-    return success(200, { data: pageData, total: data.length });
-  } catch (e) {
-    return error(e.status, e.message);
   }
+
+  // Turn into payloads
+  const parsedData = await Promise.all(
+    filteredData.map(file => beforeResponse(file, handler, url, secret))
+  );
+
+  // Sort depending on the sort order
+  const isAsc = sortOrder === "ASC";
+  parsedData.sort((a, b) => {
+    if (a[sortField] < b[sortField]) {
+      return isAsc ? -1 : 1;
+    } else if (a[sortField] > b[sortField]) {
+      return isAsc ? 1 : -1;
+    } else {
+      return 0;
+    }
+  });
+
+  // Pagination
+  const pageStartIdx = (page - 1) * perPage;
+  const pageEndIdx = pageStartIdx + perPage;
+  const pageData = parsedData.slice(pageStartIdx, pageEndIdx);
+
+  return success(200, { data: pageData, total: data.length });
 };
 
 /**

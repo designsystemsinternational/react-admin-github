@@ -1,6 +1,9 @@
 # React Admin GitHub
 
-The goal of this package is to enable GitHub as an auth and data provider to websites created with [`react-admin`](https://marmelab.com/react-admin/). We often have the need for providing a simple editing interface on top of Git repository files and this package is the result of that. Please read the documentation below as the GitHub API has several limitations that influence what you can do in your `react-admin` site.
+The goal of this package is to enable GitHub as an authentication and data provider to websites using [`react-admin`](https://marmelab.com/react-admin/). We often have the need for providing a simple editing interface on top of a Git repository, and this package is trying to solve that need. Given that the GitHub API is a bit different than an API backed by a traditional database, this package has a number of limitations:
+
+- **A limit of 1000 entries for a single resource**. This is because neither the Git Tree nor the Git Content API supports pagination on file data, and those endpoints return up to 1000 items.
+- **Limited data on lists**. When working with JSON files, we store the content of each resource item in a JSON file. We cannot load every file when listing resources, so we can only show the `createdAt` and `slug` fields on lists.
 
 You can see a working example with `react-admin`, `react-admin-github` and `gatsby` here:
 https://github.com/designsystemsinternational/react-admin-github-example
@@ -19,12 +22,11 @@ The list of user files should be created in a [`content/users` folder](https://g
 
 ### 2. Data Provider
 
-The `dataProvider` is used to load both normal files and resource data stored in JSON files in a folder named after the resource (e.g. [`content/posts`](https://github.com/designsystemsinternational/react-admin-github-example/tree/main/content/posts)). It uses the GitHub contents API to load, create, update and delete these JSON files, and this puts a number of restrictions on this package:
+The `dataProvider` is used to load both normal files and resource data stored in JSON files in a folder named after the resource (e.g. [`content/posts`](https://github.com/designsystemsinternational/react-admin-github-example/tree/main/content/posts)). It uses the GitHub contents API to load, create, update and delete these files.
 
-- **You can have a maximum of 1000 resources in the same resource folder**. This is because neither the Git Tree nor the Git Content API on GitHub supports pagination on file data.
-- **You can only show a single field value and a `createdAt` timestamp in the resource list**. This is because we cannot load all resource JSON files via the GitHub API when listing resources, so this package encodes a timestamp and a field value into the filename itself (e.g. `2022-07-05-09-00-00-My-amazing-post.json`). You can set which field value to use when setting up the API functions (see below).
-
-> TODO: File uploads: How they are handled.\
+> TODO: File handler
+> TODO: JSON handler
+> TODO: File uploads: How they are handled.
 > TODO: File upload path settings and template strings
 
 ### 3. API function
