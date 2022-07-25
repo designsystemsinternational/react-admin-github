@@ -1,6 +1,7 @@
 const authenticate = require("./authenticate");
 const contents = require("./contents");
 const preview = require("./preview");
+const releases = require("./releases");
 const { error, maybeParseJson } = require("./utils");
 
 /**
@@ -28,6 +29,8 @@ const proxy = async props => {
     response = await authenticate(prepared);
   } else if (handler === "json" || handler === "file") {
     response = await contents(prepared);
+  } else if (handler === "releases") {
+    response = await releases(prepared);
   } else if (handler === "preview") {
     response = await preview(prepared);
   } else {

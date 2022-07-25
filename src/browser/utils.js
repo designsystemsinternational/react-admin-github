@@ -9,8 +9,16 @@ const defaultSettings = {
   filesPath: "files"
 };
 
-const defaultResourceSettings = {
-  handler: "file"
+const getDefaultResourceSettings = resource => {
+  if (resource === "releases") {
+    return {
+      handler: "releases"
+    };
+  } else {
+    return {
+      handler: "file"
+    };
+  }
 };
 
 export const getSettings = settings => {
@@ -21,6 +29,8 @@ export const getSettings = settings => {
 };
 
 export const getResourceSettings = (settings, resource) => {
+  const defaultResourceSettings = getDefaultResourceSettings(resource);
+
   if (settings?.resources?.[resource]) {
     return Object.assign(
       {},

@@ -1,5 +1,7 @@
+const jwtSimple = require("jwt-simple");
 const { Octokit } = require("octokit");
 const { Base64 } = require("js-base64");
+const camelcaseKeys = require("camelcase-keys");
 const {
   isAuthorized,
   base64ToJson,
@@ -13,10 +15,9 @@ const {
 } = require("./utils");
 
 /**
-  Reads, creates, updates and deletes files from the GitHub contents API.
-  Handles both normal files and smart handling of JSON files based on handler setting
+  Reads, creates, updates and deletes releases via the GitHub API
 **/
-const contents = async props => {
+const releases = async props => {
   const { httpMethod, httpQuery, httpHeaders, token, secret } = props;
 
   if (!isAuthorized(httpHeaders, secret)) {
@@ -49,7 +50,7 @@ const contents = async props => {
 };
 
 /**
-  Gets a single resource by ID
+  Gets a single release by ID
 **/
 const getOne = async (octokit, props) => {
   const { url, repo, secret } = props;
@@ -99,60 +100,29 @@ const getMany = async (octokit, props) => {
 **/
 const getList = async (octokit, props) => {
   const { url, repo, secret, httpQuery } = props;
-  const { resource, sortField, sortOrder, handler } = httpQuery;
+  const { resource, handler } = httpQuery;
   const page = parseInt(httpQuery.page) ?? 1;
-  const perPage = parseInt(httpQuery.perPage) ?? 10;
+  const per_page = parseInt(httpQuery.perPage) ?? 10;
 
   let response;
   try {
-    response = await octokit.request(
-      `GET /repos/${repo}/contents/content/${resource}`
-    );
+    response = await octokit.request(`GET /repos/${repo}/releases`, {
+      page,
+      per_page
+    });
   } catch (e) {
-    // We allow the request to 404 in case you haven't created the resource folder yet
-    if (e.status === 404) {
-      response = { data: [] };
-    } else {
-      return error(e.status ?? 500, e.message);
-    }
+    return error(e.status ?? 500, e.message);
   }
 
   const { data } = response;
 
-  // If json handler, only return json files
-  let filteredData = data;
-  if (handler === "json") {
-    filteredData = [];
-    for (let i = 0; i < data.length; i++) {
-      if (data[i].name.endsWith(".json")) {
-        filteredData.push(data[i]);
-      }
-    }
-  }
-
-  // Turn into payloads
-  const parsedData = await Promise.all(
-    filteredData.map(file => beforeResponse(file, handler, url, secret))
-  );
-
-  // Sort depending on the sort order
-  const isAsc = sortOrder === "ASC";
-  parsedData.sort((a, b) => {
-    if (a[sortField] < b[sortField]) {
-      return isAsc ? -1 : 1;
-    } else if (a[sortField] > b[sortField]) {
-      return isAsc ? 1 : -1;
-    } else {
-      return 0;
+  return success(200, {
+    data: camelcaseKeys(response.data, { deep: true }),
+    pageInfo: {
+      hasPreviousPage: page > 1,
+      hasNextPage: data.length === per_page
     }
   });
-
-  // Pagination
-  const pageStartIdx = (page - 1) * perPage;
-  const pageEndIdx = pageStartIdx + perPage;
-  const pageData = parsedData.slice(pageStartIdx, pageEndIdx);
-
-  return success(200, { data: pageData, total: data.length });
 };
 
 /**
@@ -280,4 +250,4 @@ const del = async (octokit, props) => {
   }
 };
 
-module.exports = contents;
+module.exports = releases;

@@ -12,6 +12,28 @@ const error = (statusCode, error) => ({ statusCode, body: { error } });
 const success = (statusCode, body) => ({ statusCode, body });
 
 /**
+  Authorizes a user
+**/
+const isAuthorized = (httpHeaders, secret) => {
+  const authHeader =
+    httpHeaders["Authorization"] ?? httpHeaders["authorization"];
+
+  if (!authHeader || !authHeader.startsWith("Bearer")) {
+    return false;
+  }
+
+  try {
+    const jwt = authHeader.substring(7, authHeader.length);
+    const user = jwtSimple.decode(jwt, secret);
+    if (user.id) {
+      return true;
+    }
+  } catch (e) {}
+
+  return false;
+};
+
+/**
   Called before saving the data to the repo.
   The most important function is to remove auto-generated properties.
 **/
@@ -177,6 +199,7 @@ const uploadFile = async (octokit, repo, path, content) => {
 };
 
 module.exports = {
+  isAuthorized,
   base64ToJson,
   jsonToBase64,
   error,
