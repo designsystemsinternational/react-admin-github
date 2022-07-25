@@ -16,19 +16,17 @@ const success = (statusCode, body) => ({ statusCode, body });
   The most important function is to remove auto-generated properties.
 **/
 const beforeSave = async (octokit, repo, data, handler, jsonPath) => {
-  const copy = Object.assign({}, data);
-
   // If JSON, handle files including newly uploaded files
   if (handler === "json") {
     await changeObjects(
-      copy,
+      data,
       obj => obj.type === "file",
       async orgFile => {
         const file = Object.assign({}, orgFile);
 
         // This is a new file
         if (file.content) {
-          const fullName = `${timestamp()}-${file.name}`;
+          const fullName = `${timestamp()}-${file.id}`;
           const fullPath = join("content", file.path, fullName);
           await uploadFile(octokit, repo, fullPath, file.content);
           delete file.content;
@@ -36,8 +34,8 @@ const beforeSave = async (octokit, repo, data, handler, jsonPath) => {
         }
 
         // Delete file properties
+        delete file.id;
         delete file.url;
-        delete file.name;
         delete file.path;
 
         return file;
@@ -45,15 +43,12 @@ const beforeSave = async (octokit, repo, data, handler, jsonPath) => {
     );
   }
 
-  // Remove generate main properties
-  delete copy.id;
-  delete copy.name;
-  delete copy.path;
-  delete copy.type;
-  delete copy.createdAt;
-  delete copy.slug;
-
-  return copy;
+  // Remove generated main properties
+  delete data.id;
+  delete data.path;
+  delete data.type;
+  delete data.createdAt;
+  delete data.slug;
 };
 
 /**
@@ -63,7 +58,6 @@ const beforeSave = async (octokit, repo, data, handler, jsonPath) => {
 const beforeResponse = async (githubFile, handler, url, secret, json) => {
   const payload = {
     id: githubFile.name,
-    name: githubFile.name,
     path: githubFile.path,
     type: githubFile.type
   };
@@ -80,10 +74,16 @@ const beforeResponse = async (githubFile, handler, url, secret, json) => {
       second,
       ...slugArray
     ] = withoutExt.split("-");
-    payload.createdAt = `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
-    payload.slug = slugArray.join("-");
+    if (!payload.hasOwnProperty("createdAt")) {
+      payload.createdAt = `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
+    }
+    if (!payload.hasOwnProperty("slug")) {
+      payload.slug = slugArray.join("-");
+    }
   } else {
-    payload.slug = withoutExt;
+    if (!payload.hasOwnProperty("slug")) {
+      payload.slug = withoutExt;
+    }
   }
 
   // Check if we should add JSON contents to payload
@@ -107,7 +107,7 @@ const beforeResponse = async (githubFile, handler, url, secret, json) => {
           url + `?handler=preview&path=${filePath}&previewToken=${jwt}`;
         return Object.assign({}, file, {
           url: fileUrl,
-          name: basename(filePath)
+          id: basename(filePath)
         });
       }
     );

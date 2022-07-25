@@ -4,6 +4,7 @@ The goal of this package is to enable GitHub as an authentication and data provi
 
 - **A limit of 1000 entries for a single resource**. This is because neither the Git Tree nor the Git Content API supports pagination on file data, and those endpoints return up to 1000 items.
 - **Limited data on lists**. When working with JSON files, we store the content of each resource item in a JSON file. We cannot load every file when listing resources, so we can only show the `createdAt` and `slug` fields on lists.
+- **1MB filesize**. The GitHub Contents API only allows loading of files up to 1MB. This is most apparent when using the `ImageField` to preview uploaded images. Since large uploads are allowed, this package will show a fallback images when trying to preview images larger than 1MB.
 
 You can see a working example with `react-admin`, `react-admin-github` and `gatsby` here:
 https://github.com/designsystemsinternational/react-admin-github-example
@@ -28,6 +29,7 @@ The `dataProvider` is used to load both normal files and resource data stored in
 > TODO: JSON handler
 > TODO: File uploads: How they are handled.
 > TODO: File upload path settings and template strings
+> TODO: Cannot have id in JSON
 
 ### 3. API function
 

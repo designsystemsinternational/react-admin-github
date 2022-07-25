@@ -62,13 +62,10 @@ const contents = async props => {
     } else {
       return await getList(octokit, props);
     }
+  } else if (httpMethod === "POST") {
+    return create(octokit, props);
   } else if (httpMethod === "PUT") {
-    const { data } = httpBody;
-    if (data.id) {
-      return update(octokit, props);
-    } else {
-      return create(octokit, props);
-    }
+    return update(octokit, props);
   } else if (httpMethod === "DELETE") {
     return del(octokit, props);
   } else {
@@ -89,7 +86,7 @@ const getOne = async (octokit, props) => {
       `GET /repos/${repo}/contents/content/${resource}/${id}`
     );
   } catch (e) {
-    return error(e.status, e.message);
+    return error(e.status ?? 500, e.message);
   }
 
   const data = await beforeResponse(response.data, handler, url, secret);
@@ -116,7 +113,7 @@ const getMany = async (octokit, props) => {
     );
     return success(200, { data });
   } catch (e) {
-    return error(e.status, e.message);
+    return error(e.status ?? 500, e.message);
   }
 };
 
@@ -141,7 +138,7 @@ const getList = async (octokit, props) => {
     if (e.status === 404) {
       response = { data: [] };
     } else {
-      return error(e.status, e.message);
+      return error(e.status ?? 500, e.message);
     }
   }
 
@@ -190,22 +187,25 @@ const create = async (octokit, props) => {
   const { url, repo, secret } = props;
   const { resource, data, handler } = props.httpBody;
 
-  if (!data.name) {
-    return error(404, "POST body needs a name property");
+  if (!data.id) {
+    return error(
+      404,
+      "POST body needs id property set to name of file to be created"
+    );
   }
 
-  data.name = `${timestamp()}-${data.name}`;
-  const path = `content/${resource}/${data.name}`;
-  const dataToSave = await beforeSave(octokit, repo, data, handler, path);
+  data.id = `${timestamp()}-${data.id}`;
+  const path = `content/${resource}/${data.id}`;
+  await beforeSave(octokit, repo, data, handler, path);
 
   let response;
   try {
     response = await octokit.request(`PUT /repos/${repo}/contents/${path}`, {
       message: `Created resource: ${path}`,
-      content: jsonToBase64(dataToSave)
+      content: jsonToBase64(data)
     });
   } catch (e) {
-    return error(e.status, e.message);
+    return error(e.status ?? 500, e.message);
   }
 
   if (response.status === 201) {
@@ -214,7 +214,7 @@ const create = async (octokit, props) => {
       handler,
       url,
       secret,
-      dataToSave
+      data
     );
     return success(201, {
       data: payload
@@ -232,7 +232,7 @@ const update = async (octokit, props) => {
   const { resource, data, handler } = httpBody;
 
   const path = `content/${resource}/${data.id}`;
-  const dataToSave = await beforeSave(octokit, repo, data, handler, path);
+  await beforeSave(octokit, repo, data, handler, path);
 
   let response;
 
@@ -248,10 +248,10 @@ const update = async (octokit, props) => {
     response = await octokit.request(`PUT /repos/${repo}/contents/${path}`, {
       sha: getResponse.data.sha,
       message: `Updated resource: ${resource}/${data.id}`,
-      content: jsonToBase64(dataToSave)
+      content: jsonToBase64(data)
     });
   } catch (e) {
-    return error(e.status, e.message);
+    return error(e.status ?? 500, e.message);
   }
 
   if (response.status === 200) {
@@ -260,7 +260,7 @@ const update = async (octokit, props) => {
       handler,
       url,
       secret,
-      dataToSave
+      data
     );
     return success(response.status, {
       data: payload
@@ -298,10 +298,10 @@ const del = async (octokit, props) => {
       );
       return success(200, { data: payload });
     } else {
-      return error(response.status, response.data.message);
+      return error(response.status ?? 500, response.data.message);
     }
   } catch (e) {
-    return error(e.status, e.message);
+    return error(e.status ?? 500, e.message);
   }
 };
 

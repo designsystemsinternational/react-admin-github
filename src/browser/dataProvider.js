@@ -1,10 +1,11 @@
 import {
   get,
+  post,
   put,
   del,
   getSettings,
   getResourceSettings,
-  addNameAndSlug,
+  createIdAndSlug,
   convertNewFiles
 } from "./utils";
 
@@ -69,10 +70,10 @@ const buildDataProvider = (proxyUrl, paramSettings) => {
         data: params.data
       };
 
-      addNameAndSlug(resSettings, body);
+      createIdAndSlug(resSettings, body);
       await convertNewFiles(settings, resSettings, resource, body);
 
-      return put(proxyUrl, body);
+      return post(proxyUrl, body);
     },
 
     /**

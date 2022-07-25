@@ -141,19 +141,29 @@ const getJwt = () => {
 };
 
 /**
-  Adds name and slug to the resource payload. Only used for create.
+  Adds id and slug to the payload with the name of the new file to be created. Only used for create.
+  Slug is needed in order to generate filesPath. We only add the attributes if they are missing, in
+  case you want users to be able to input id and slug.
 **/
-export const addNameAndSlug = (resSettings, payload) => {
+export const createIdAndSlug = (resSettings, payload) => {
   if (resSettings.handler === "json") {
     if (resSettings.slug) {
-      payload.data.slug = makeSlug(payload.data[resSettings.slug]);
-      payload.data.name = payload.data.slug + ".json";
+      const slug = makeSlug(payload.data[resSettings.slug]);
+      if (!payload.data.hasOwnProperty("slug")) {
+        payload.data.slug = slug;
+      }
+      if (!payload.data.hasOwnProperty("id")) {
+        payload.data.id = slug + ".json";
+      }
     } else {
-      params.data.slug = "data";
-      params.data.name = "data.json";
+      if (!payload.data.hasOwnProperty("id")) {
+        params.data.id = "data.json";
+      }
     }
-  } else if (!payload.data.name || !payload.data.slug) {
-    throw "Uploaded resource data does not have name or slug";
+  }
+  // For handlers other than JSON, you have to submit the ID!
+  else if (!payload.data.id) {
+    throw "Uploaded resource data does not have id";
   }
 };
 
@@ -184,7 +194,7 @@ export const convertNewFiles = async (
         reader.onload = () => {
           resolve({
             type: "file",
-            name: makeSlug(file.rawFile.path),
+            id: makeSlug(file.rawFile.path),
             path: filesPath,
             content: reader.result.split(",")[1]
           });

@@ -5,9 +5,9 @@ const { error } = require("./utils");
 const { readFileSync } = require("fs");
 const { join } = require("path");
 
-const tooLargeImage = new Buffer(
-  readFileSync(join(__dirname, "../assets/too-large.png"))
-).toString("base64");
+const tooLargeImage = readFileSync(join(__dirname, "../assets/too-large.png"), {
+  encoding: "base64"
+});
 
 const preview = async props => {
   const { httpQuery, repo, token, secret } = props;
