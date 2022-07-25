@@ -172,7 +172,10 @@ export const createIdAndSlug = (resSettings, payload) => {
     }
   }
   // For handlers other than JSON, you have to submit the ID!
-  else if (!payload.data.id) {
+  else if (
+    resSettings.handler === "file" &&
+    !payload.data.hasOwnProperty("id")
+  ) {
     throw "Uploaded resource data does not have id";
   }
 };

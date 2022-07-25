@@ -58,39 +58,12 @@ const getOne = async (octokit, props) => {
 
   let response;
   try {
-    response = await octokit.request(
-      `GET /repos/${repo}/contents/content/${resource}/${id}`
-    );
+    response = await octokit.request(`GET /repos/${repo}/releases/${id}`);
   } catch (e) {
     return error(e.status ?? 500, e.message);
   }
 
-  const data = await beforeResponse(response.data, handler, url, secret);
-  return success(200, { data });
-};
-
-/**
-  Gets multiple resources by ID
-  The only way to do this with the GitHub api is to make a request per resource
-  I think that's okay since this is often 2-5 resources being loaded.
-**/
-const getMany = async (octokit, props) => {
-  const { url, repo, secret } = props;
-  const { resource, ids, handler } = props.httpQuery;
-  try {
-    const data = await Promise.all(
-      JSON.parse(ids).map(id => {
-        return octokit
-          .request(`GET /repos/${repo}/contents/content/${resource}/${id}`)
-          .then(response => {
-            return beforeResponse(response.data, handler, url, secret);
-          });
-      })
-    );
-    return success(200, { data });
-  } catch (e) {
-    return error(e.status ?? 500, e.message);
-  }
+  return success(200, { data: response.data });
 };
 
 /**
@@ -126,92 +99,55 @@ const getList = async (octokit, props) => {
 };
 
 /**
-  Creates a resource
+  Creates a release
 **/
 const create = async (octokit, props) => {
   const { url, repo, secret } = props;
   const { resource, data, handler } = props.httpBody;
 
-  if (!data.id) {
-    return error(
-      404,
-      "POST body needs id property set to name of file to be created"
-    );
-  }
-
-  data.id = `${timestamp()}-${data.id}`;
-  const path = `content/${resource}/${data.id}`;
-  await beforeSave(octokit, repo, data, handler, path);
-
   let response;
   try {
-    response = await octokit.request(`PUT /repos/${repo}/contents/${path}`, {
-      message: `Created resource: ${path}`,
-      content: jsonToBase64(data)
+    response = await octokit.request(`POST /repos/${repo}/releases`, {
+      name: data.name ?? "Website release",
+      body: data.body ?? "Another release of the website",
+      tag_name: timestamp()
     });
   } catch (e) {
     return error(e.status ?? 500, e.message);
   }
 
   if (response.status === 201) {
-    const payload = await beforeResponse(
-      response.data.content,
-      handler,
-      url,
-      secret,
-      data
-    );
     return success(201, {
-      data: payload
+      data: response.data
     });
   } else {
-    return error(response.status, response.data.message);
+    return error(response.status ?? 500, response.data.message);
   }
 };
 
 /**
-  Updates a resource
+  Updates a release
 **/
 const update = async (octokit, props) => {
-  const { url, repo, secret, httpBody } = props;
-  const { resource, data, handler } = httpBody;
-
-  const path = `content/${resource}/${data.id}`;
-  await beforeSave(octokit, repo, data, handler, path);
+  const { url, repo, secret } = props;
+  const { resource, data, handler } = props.httpBody;
 
   let response;
-
   try {
-    const getResponse = await octokit.request(
-      `GET /repos/${repo}/contents/${path}`
+    response = await octokit.request(
+      `PATCH /repos/${repo}/releases/${data.id}`,
+      data
     );
-
-    if (getResponse.status !== 200) {
-      return error(getResponse.status, getResponse.data.message);
-    }
-
-    response = await octokit.request(`PUT /repos/${repo}/contents/${path}`, {
-      sha: getResponse.data.sha,
-      message: `Updated resource: ${resource}/${data.id}`,
-      content: jsonToBase64(data)
-    });
   } catch (e) {
     return error(e.status ?? 500, e.message);
   }
 
   if (response.status === 200) {
-    const payload = await beforeResponse(
-      response.data.content,
-      handler,
-      url,
-      secret,
-      data
-    );
-    return success(response.status, {
-      data: payload
+    return success(200, {
+      data: response.data
     });
   } else {
-    return error(response.status, response.data.message);
+    return error(response.status ?? 500, response.data.message);
   }
 };
 
@@ -223,25 +159,12 @@ const del = async (octokit, props) => {
   const { resource, id } = props.httpQuery;
 
   try {
-    const getResponse = await octokit.request(
-      `GET /repos/${repo}/contents/content/${resource}/${id}`
-    );
     const response = await octokit.request(
-      `DELETE /repos/${repo}/contents/content/${resource}/${id}`,
-      {
-        message: `Delete resource: ${resource}/${id}`,
-        sha: getResponse.data.sha
-      }
+      `DELETE /repos/${repo}/releases/${id}`
     );
 
-    if (response.status === 200) {
-      const payload = await beforeResponse(
-        getResponse.data,
-        handler,
-        url,
-        secret
-      );
-      return success(200, { data: payload });
+    if (response.status === 204) {
+      return success(200, { data: { id } });
     } else {
       return error(response.status ?? 500, response.data.message);
     }
