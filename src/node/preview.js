@@ -2,6 +2,12 @@ const jwtSimple = require("jwt-simple");
 const { Octokit } = require("octokit");
 const mime = require("mime-types");
 const { error } = require("./utils");
+const { readFileSync } = require("fs");
+const { join } = require("path");
+
+const tooLargeImage = new Buffer(
+  readFileSync(join(__dirname, "../assets/too-large.png"))
+).toString("base64");
 
 const preview = async props => {
   const { httpQuery, repo, token, secret } = props;
@@ -19,10 +25,11 @@ const preview = async props => {
   // Proxy file down to the client
   const octokit = new Octokit({ auth: token });
   const response = await octokit.request(`GET /repos/${repo}/contents/${path}`);
+
   return {
     statusCode: 200,
     isBase64Encoded: true,
-    body: response.data.content,
+    body: response.data.content !== "" ? response.data.content : tooLargeImage,
     headers: {
       "Content-Type": mime.contentType(response.data.name)
     }
