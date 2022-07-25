@@ -28,13 +28,13 @@ const releases = async props => {
   // --------------------------------------------------
 
   const octokit = new Octokit({ auth: token });
+  const { id, ids } = httpQuery;
 
   if (httpMethod === "GET") {
-    const { id, ids } = httpQuery;
     if (id) {
       return await getOne(octokit, props);
     } else if (ids) {
-      return await getMany(octokit, props);
+      //return await getMany(octokit, props);
     } else {
       return await getList(octokit, props);
     }
@@ -43,10 +43,14 @@ const releases = async props => {
   } else if (httpMethod === "PUT") {
     return update(octokit, props);
   } else if (httpMethod === "DELETE") {
-    return del(octokit, props);
-  } else {
-    return error(404, "HTTP method not recognized");
+    if (id) {
+      return del(octokit, props);
+    } else if (ids) {
+      return delMany(octokit, props);
+    }
   }
+
+  return error(404, "HTTP method not recognized");
 };
 
 /**
@@ -156,7 +160,7 @@ const update = async (octokit, props) => {
 **/
 const del = async (octokit, props) => {
   const { repo, handler, url, secret } = props;
-  const { resource, id } = props.httpQuery;
+  const { id } = props.httpQuery;
 
   try {
     const response = await octokit.request(
@@ -171,6 +175,24 @@ const del = async (octokit, props) => {
   } catch (e) {
     return error(e.status ?? 500, e.message);
   }
+};
+
+/**
+  Deletes several resources
+**/
+const delMany = async (octokit, props) => {
+  const { repo, handler, url, secret } = props;
+  const ids = props.httpQuery.ids.split(",");
+
+  try {
+    for (let i = 0; i < ids.length; i++) {
+      await octokit.request(`DELETE /repos/${repo}/releases/${ids[i]}`);
+    }
+  } catch (e) {
+    return error(e.status ?? 500, e.message);
+  }
+
+  return success(200, { data: ids });
 };
 
 module.exports = releases;

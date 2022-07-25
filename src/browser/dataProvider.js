@@ -108,9 +108,22 @@ const buildDataProvider = (proxyUrl, paramSettings) => {
       };
 
       return del(proxyUrl, query);
-    }
+    },
 
-    // deleteMany
+    /**
+      Deletes more than one resource
+    **/
+    deleteMany: (resource, params) => {
+      const resSettings = getResourceSettings(settings, resource);
+
+      const query = {
+        handler: resSettings.handler,
+        resource: resource,
+        ids: params.ids
+      };
+
+      return del(proxyUrl, query);
+    }
   };
 };
 
