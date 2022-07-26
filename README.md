@@ -21,6 +21,24 @@ The `authProvider` **does not** use the GitHub OAuth flow as a login to your `re
 
 The list of user files should be created in a [`content/users` folder](https://github.com/designsystemsinternational/react-admin-github-example/tree/main/content/users) in the website repository root, and this file has basic info about the user, as well as a hashed password.
 
+#### Seeding with the first user
+
+There is an accompanying function to generate the file contents for the first user, since you won't be able to log in unless the `content/users` folder is empty. This is how you use it from the Node repl:
+
+```
+$ node
+> const hash = require("@designsystemsinternational/react-admin-github/src/node/hash");
+> hash('my@email.com', 'mypassword');
+Password hashed!
+Now create a file named content/users/rune@runemadsen.com.json with the following JSON content:
+{
+  "fullName": "Your full name",
+  "id": "my@email.com",
+  "hash": "$2a$10$SZwAAxUXuvrQQP2SCPMmRum4plAjH/SoqxtVLjz48cd4.Qz9eDbba",
+  "avatar": "https://link.to.your.profile.image"
+}
+```
+
 ### 2. Data Provider
 
 The `dataProvider` is used to load both normal files and resource data stored in JSON files in a folder named after the resource (e.g. [`content/posts`](https://github.com/designsystemsinternational/react-admin-github-example/tree/main/content/posts)). It uses the GitHub contents API to load, create, update and delete these files.
