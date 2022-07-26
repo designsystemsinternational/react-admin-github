@@ -9,11 +9,9 @@ The goal of this package is to enable GitHub as an authentication and data provi
 You can see a working example with `react-admin`, `react-admin-github` and `gatsby` here:
 https://github.com/designsystemsinternational/react-admin-github-example
 
-## How does it work?
-
 This package ships with three main pieces of functionality:
 
-### 1. Auth Provider
+## Auth Provider
 
 The `authProvider` uses a list of JSON files with user data from the GitHub repository to handle authentication and user management. You can create, edit or delete these JSON files, and this will determine whether users can log in to your `react-admin` website.
 
@@ -21,7 +19,7 @@ The `authProvider` **does not** use the GitHub OAuth flow as a login to your `re
 
 The list of user files should be created in a [`content/users` folder](https://github.com/designsystemsinternational/react-admin-github-example/tree/main/content/users) in the website repository root, and this file has basic info about the user, as well as a hashed password.
 
-#### Seeding with the first user
+### Seeding with the first user
 
 There is an accompanying function to generate the file contents for the first user, since you won't be able to log in unless the `content/users` folder is empty. This is how you use it from the Node repl:
 
@@ -39,7 +37,7 @@ Now create a file named content/users/rune@runemadsen.com.json with the followin
 }
 ```
 
-### 2. Data Provider
+## Data Provider
 
 The `dataProvider` is used to load both normal files and resource data stored in JSON files in a folder named after the resource (e.g. [`content/posts`](https://github.com/designsystemsinternational/react-admin-github-example/tree/main/content/posts)). It uses the GitHub contents API to load, create, update and delete these files.
 
@@ -51,7 +49,7 @@ The `dataProvider` is used to load both normal files and resource data stored in
 > TODO: Releases. AUTO-ENABLED BY NAME
 > TODO: Releases will auto-load workflow runs too on getList
 
-### 3. API function
+## API function
 
 When communicating with the GitHub API, you need a personal access token or App secret, and these cannot be exposed on your static website. Therefore, this package ships with a single function that can be used in any serverless framework (AWS Lambda, Netlify Functions, etc) or cloud server (EC2, Heroku, etc) to proxy calls to the GitHub API. This function holds all the functionality needed to run the `authProvider` and `dataProvider`.
 
