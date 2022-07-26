@@ -3,7 +3,7 @@ const contents = require("./contents");
 const preview = require("./preview");
 const releases = require("./releases");
 const { success, error, maybeParseJson } = require("./utils");
-const packageJson = require("../package.json");
+const packageJson = require("../../package.json");
 
 /**
   This is a single API function that handles all requests made by
