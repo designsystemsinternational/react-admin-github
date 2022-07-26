@@ -114,6 +114,7 @@ const create = async (octokit, props) => {
     response = await octokit.request(`POST /repos/${repo}/releases`, {
       name: data.name ?? "Website release",
       body: data.body ?? "Another release of the website",
+      prerelease: !!data.prerelease,
       tag_name: timestamp()
     });
   } catch (e) {
