@@ -11,6 +11,7 @@ const { error, maybeParseJson } = require("./utils");
 const proxy = async props => {
   // Common handling of props for all functions
   const prepared = Object.assign({}, props, {
+    httpQuery: props.httpQuery ?? {},
     httpMethod: props.httpMethod.toUpperCase(),
     httpBody: maybeParseJson(props.httpBody)
   });
