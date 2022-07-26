@@ -1,5 +1,5 @@
 const jwtSimple = require("jwt-simple");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const { Octokit } = require("octokit");
 const { Base64 } = require("js-base64");
 const { success, error } = require("./utils");

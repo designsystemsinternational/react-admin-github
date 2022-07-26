@@ -4,10 +4,7 @@ const mime = require("mime-types");
 const { error } = require("./utils");
 const { readFileSync } = require("fs");
 const { join } = require("path");
-
-const tooLargeImage = readFileSync(join(__dirname, "../assets/too-large.png"), {
-  encoding: "base64"
-});
+const tooLargeImage = require("./previewImage");
 
 const preview = async props => {
   const { httpQuery, repo, token, secret } = props;
