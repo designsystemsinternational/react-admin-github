@@ -31,6 +31,7 @@ The `dataProvider` is used to load both normal files and resource data stored in
 > TODO: File upload path settings and template strings
 > TODO: Cannot have id in JSON
 > TODO: Releases. AUTO-ENABLED BY NAME
+> TODO: Releases will auto-load workflow runs too on getList
 
 ### 3. API function
 

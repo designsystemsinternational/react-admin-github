@@ -81,20 +81,36 @@ const getList = async (octokit, props) => {
   const page = parseInt(httpQuery.page) ?? 1;
   const per_page = parseInt(httpQuery.perPage) ?? 10;
 
-  let response;
+  let releases, runs;
   try {
-    response = await octokit.request(`GET /repos/${repo}/releases`, {
+    releases = await octokit.request(`GET /repos/${repo}/releases`, {
       page,
       per_page
     });
+    runs = await octokit.request(`GET /repos/${repo}/actions/runs`);
   } catch (e) {
     return error(e.status ?? 500, e.message);
   }
 
-  const { data } = response;
+  const { data } = releases;
+
+  // Add info about workflow run triggered by releases
+  for (let i = 0; i < data.length; i++) {
+    for (let j = 0; j < runs.data.workflow_runs.length; j++) {
+      const release = data[i];
+      const run = runs.data.workflow_runs[j];
+      if (run.event === "release" && release.tag_name === run.head_branch) {
+        release.action = {
+          id: run.id,
+          status: run.status,
+          conclusion: run.conclusion
+        };
+      }
+    }
+  }
 
   return success(200, {
-    data: camelcaseKeys(response.data, { deep: true }),
+    data: camelcaseKeys(releases.data, { deep: true }),
     pageInfo: {
       hasPreviousPage: page > 1,
       hasNextPage: data.length === per_page
