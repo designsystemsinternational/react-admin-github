@@ -2,7 +2,8 @@ const authenticate = require("./authenticate");
 const contents = require("./contents");
 const preview = require("./preview");
 const releases = require("./releases");
-const { error, maybeParseJson } = require("./utils");
+const { success, error, maybeParseJson } = require("./utils");
+const packageJson = require("../package.json");
 
 /**
   This is a single API function that handles all requests made by
@@ -34,6 +35,14 @@ const proxy = async props => {
     response = await releases(prepared);
   } else if (handler === "preview") {
     response = await preview(prepared);
+  } else if (
+    prepared.httpMethod === "GET" &&
+    Object.keys(prepared.httpQuery).length === 0
+  ) {
+    response = success(200, {
+      message: "This is the default response by the proxy function",
+      version: packageJson.version
+    });
   } else {
     response = error(404, "Wrong handler set in HTTP request:", handler);
   }
