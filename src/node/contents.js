@@ -1,4 +1,4 @@
-const { Octokit } = require("octokit");
+const { Octokit } = require("@octokit/core");
 const { Base64 } = require("js-base64");
 const {
   isAuthorized,

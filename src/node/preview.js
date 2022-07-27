@@ -1,5 +1,5 @@
 const jwtSimple = require("jwt-simple");
-const { Octokit } = require("octokit");
+const { Octokit } = require("@octokit/core");
 const mime = require("mime-types");
 const { error } = require("./utils");
 const { readFileSync } = require("fs");
