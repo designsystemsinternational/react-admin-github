@@ -173,7 +173,7 @@ const create = async (octokit, props) => {
   }
 
   const path = `content/${resource}/${data.id}`;
-  await beforeSave(octokit, repo, data, handler, path);
+  await beforeSave(octokit, repo, resource, data, handler, path);
 
   let response;
   try {
@@ -209,7 +209,7 @@ const update = async (octokit, props) => {
   const { resource, data, handler } = httpBody;
 
   const path = `content/${resource}/${data.id}`;
-  await beforeSave(octokit, repo, data, handler, path);
+  await beforeSave(octokit, repo, resource, data, handler, path);
 
   let response;
 

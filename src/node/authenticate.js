@@ -6,15 +6,15 @@ const { success, error } = require("./utils");
 
 const authenticate = async props => {
   const { httpBody, repo, token, secret } = props;
-  const { id, password } = httpBody;
+  const { username, password } = httpBody;
+  const id = `${username}.json`;
 
-  // Load JSON file from GitHub
   const octokit = new Octokit({ auth: token });
 
   let response;
   try {
     response = await octokit.request(
-      `GET /repos/${repo}/contents/content/users/${id}.json`
+      `GET /repos/${repo}/contents/content/users/${id}`
     );
   } catch (e) {
     return error(e.status, e.message);

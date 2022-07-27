@@ -1,7 +1,8 @@
-const { join, basename, relative, dirname, resolve } = require("path");
+const { join, basename, relative, dirname, resolve, extname } = require("path");
 const { Base64 } = require("js-base64");
 const jwtSimple = require("jwt-simple");
 const { changeObjects, parseFilename } = require("../shared/utils");
+const bcrypt = require("bcryptjs");
 
 /**
   Simple utils
@@ -37,9 +38,21 @@ const isAuthorized = (httpHeaders, secret) => {
   Called before saving the data to the repo.
   The most important function is to remove auto-generated properties.
 **/
-const beforeSave = async (octokit, repo, data, handler, jsonPath) => {
-  // If JSON, handle files including newly uploaded files
+const beforeSave = async (octokit, repo, resource, data, handler, jsonPath) => {
+  // Remove generated main properties
+  delete data.id;
+  delete data._ragInfo;
+
   if (handler === "json") {
+    // Handle user passwords
+    if (resource === "users") {
+      if (data.password) {
+        data.hash = hashPassword(data.password);
+      }
+      delete data.password;
+    }
+
+    // Handle newly uploaded files
     await changeObjects(
       data,
       obj => obj.type === "file",
@@ -63,10 +76,6 @@ const beforeSave = async (octokit, repo, data, handler, jsonPath) => {
       }
     );
   }
-
-  // Remove generated main properties
-  delete data.id;
-  delete data._ragInfo;
 };
 
 /**
@@ -77,8 +86,10 @@ const beforeResponse = async (githubFile, handler, url, secret, json) => {
   const payload = {
     id: githubFile.name,
     _ragInfo: {
+      name: githubFile.name,
       path: githubFile.path,
-      type: githubFile.type
+      type: githubFile.type,
+      slug: basename(githubFile.name, extname(githubFile.name))
     }
   };
 
@@ -161,6 +172,34 @@ const uploadFile = async (octokit, repo, path, content) => {
   return response;
 };
 
+/**
+  This is a simple function that can be used to generate the first user
+  in the users folder.
+**/
+
+const hashPassword = (password, saltRounds = 10) => {
+  return bcrypt.hashSync(password, saltRounds);
+};
+
+const logUserInfo = (email, password, saltRounds) => {
+  const hash = hashPassword(password, saltRounds);
+  console.log(`Password hashed!`);
+  console.log(
+    `Now create a file named content/users/${email}.json with the following JSON content:`
+  );
+  console.log(
+    JSON.stringify(
+      {
+        hash,
+        fullName: "Your full name",
+        avatar: "https://link.to.your.profile.image"
+      },
+      null,
+      2
+    )
+  );
+};
+
 module.exports = {
   isAuthorized,
   base64ToJson,
@@ -170,5 +209,7 @@ module.exports = {
   maybeParseJson,
   beforeResponse,
   beforeSave,
-  uploadFile
+  uploadFile,
+  hashPassword,
+  logUserInfo
 };

@@ -16,6 +16,13 @@ const defaultSettings = {
 };
 
 const getDefaultResourceSettings = resource => {
+  if (resource === "users") {
+    return {
+      handler: "json",
+      filenameFromProperty: "email",
+      disableTimestamp: true
+    };
+  }
   if (resource === "releases") {
     return {
       handler: "releases"
@@ -36,7 +43,6 @@ export const getSettings = settings => {
 
 export const getResourceSettings = (settings, resource) => {
   const defaultResourceSettings = getDefaultResourceSettings(resource);
-
   if (settings?.resources?.[resource]) {
     return Object.assign(
       {},
@@ -157,30 +163,6 @@ const getJwt = () => {
 };
 
 /**
-  Adds id to the payload with the name of the new file to be created. Only used for create.
-**/
-export const createId = (resSettings, payload) => {
-  if (resSettings.handler === "json") {
-    if (!payload.data.hasOwnProperty("id")) {
-      if (resSettings.filenameFromProperty) {
-        payload.data.id =
-          createFilename(payload.data[resSettings.filenameFromProperty]) +
-          ".json";
-      } else {
-        params.data.id = createFilename("data.json");
-      }
-    }
-  }
-  // For handlers other than JSON, you have to submit the ID!
-  else if (
-    resSettings.handler === "file" &&
-    !payload.data.hasOwnProperty("id")
-  ) {
-    throw "Uploaded resource data does not have id";
-  }
-};
-
-/**
   Changes any rawFile file and image uploads (single or multiple)
   into objects with a base64 string and file info to be used on the server.
   These will be added to the GitHub repo and a path will be inserted
@@ -220,7 +202,40 @@ export const convertNewFiles = async (
 };
 
 /**
+  Adds id to the payload with the name of the new file to be created. Only used for create.
+**/
+export const createId = (resSettings, payload) => {
+  const { handler, filenameFromProperty, disableTimestamp } = resSettings;
+
+  if (handler === "json") {
+    if (!payload.data.hasOwnProperty("id")) {
+      if (filenameFromProperty) {
+        payload.data.id =
+          createFilename(payload.data[filenameFromProperty], disableTimestamp) +
+          ".json";
+      } else {
+        payload.data.id = createFilename("data.json", disableTimestamp);
+      }
+    } else {
+      payload.data.id = createFilename(payload.data.id, disableTimestamp);
+      if (!payload.data.id.endsWith(".json")) {
+        payload.data.id += ".json";
+      }
+    }
+  }
+  // For handlers other than JSON, you have to submit the ID!
+  else if (
+    resSettings.handler === "file" &&
+    !payload.data.hasOwnProperty("id")
+  ) {
+    throw "Uploaded resource data does not have id";
+  }
+};
+
+/**
   Turns a string into something that can be used in a filename
 **/
-const createFilename = str =>
-  timestamp() + "-" + slugify(str, { lower: true, trim: true });
+const createFilename = (str, disableTimestamp) => {
+  const slugified = slugify(str, { lower: true, trim: true });
+  return disableTimestamp ? slugified : timestamp() + "-" + slugified;
+};

@@ -25,8 +25,8 @@ There is an accompanying function to generate the file contents for the first us
 
 ```
 $ node
-> const hash = require("@designsystemsinternational/react-admin-github/src/node/hash");
-> hash('my@email.com', 'mypassword');
+> const { logUserInfo } = require("@designsystemsinternational/react-admin-github/src/node/utils");
+> logUserInfo('my@email.com', 'mypassword');
 Password hashed!
 Now create a file named content/users/rune@runemadsen.com.json with the following JSON content:
 {
@@ -47,9 +47,11 @@ The `dataProvider` is used to load both normal files and resource data stored in
 > TODO: File upload path settings and template strings
 > TODO: Cannot have id in JSON
 > TODO: Releases. AUTO-ENABLED BY NAME
+> TODO: Users. AUTO-ENABLED BY NAME
 > TODO: Releases will auto-load workflow runs too on getList
 > TODO: uploadJsonFilesTo function (resource, data)
-> TODO: \_ragInfo
+> TODO: id and \_ragInfo and only reserved names in JSON
+> TODO: resource settings disable timestamp
 
 ## API function
 
