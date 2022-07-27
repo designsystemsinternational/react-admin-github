@@ -8,8 +8,7 @@ const {
   error,
   beforeResponse,
   beforeSave,
-  uploadFile,
-  timestamp
+  uploadFile
 } = require("./utils");
 
 /**
@@ -173,7 +172,6 @@ const create = async (octokit, props) => {
     );
   }
 
-  data.id = `${timestamp()}-${data.id}`;
   const path = `content/${resource}/${data.id}`;
   await beforeSave(octokit, repo, data, handler, path);
 

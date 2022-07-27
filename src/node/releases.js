@@ -10,9 +10,9 @@ const {
   error,
   beforeResponse,
   beforeSave,
-  uploadFile,
-  timestamp
+  uploadFile
 } = require("./utils");
+const { timestamp } = require("../shared/utils");
 
 /**
   Reads, creates, updates and deletes releases via the GitHub API

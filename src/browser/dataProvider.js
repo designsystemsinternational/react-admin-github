@@ -5,7 +5,7 @@ import {
   del,
   getSettings,
   getResourceSettings,
-  createIdAndSlug,
+  createId,
   convertNewFiles
 } from "./utils";
 
@@ -70,8 +70,11 @@ const buildDataProvider = (proxyUrl, paramSettings) => {
         data: params.data
       };
 
-      createIdAndSlug(resSettings, body);
-      await convertNewFiles(settings, resSettings, resource, body);
+      createId(resSettings, body);
+
+      if (body.handler === "json") {
+        await convertNewFiles(settings, resSettings, resource, body);
+      }
 
       return post(proxyUrl, body);
     },
@@ -88,7 +91,9 @@ const buildDataProvider = (proxyUrl, paramSettings) => {
         data: params.data
       };
 
-      await convertNewFiles(settings, resSettings, resource, body);
+      if (body.handler === "json") {
+        await convertNewFiles(settings, resSettings, resource, body);
+      }
 
       return put(proxyUrl, body);
     },

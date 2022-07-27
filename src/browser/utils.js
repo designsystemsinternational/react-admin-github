@@ -1,12 +1,18 @@
 import slugify from "slugify";
-import { changeObjects } from "../shared/utils";
+import { changeObjects, timestamp, parseFilename } from "../shared/utils";
 
 /**
   Defaults
 **/
 
 const defaultSettings = {
-  filesPath: "files"
+  // The default upload location for files in JSON data
+  // Example: `content/posts/2022-01-01-12-00-00-post-title.json`
+  // Files are stored in: `content/posts/post-title`
+  uploadJsonFilesTo: (resource, data) => {
+    const info = parseFilename(data.id);
+    return `${resource}/${info.slug}`;
+  }
 };
 
 const getDefaultResourceSettings = resource => {
@@ -151,23 +157,17 @@ const getJwt = () => {
 };
 
 /**
-  Adds id and slug to the payload with the name of the new file to be created. Only used for create.
-  Slug is needed in order to generate filesPath. We only add the attributes if they are missing, in
-  case you want users to be able to input id and slug.
+  Adds id to the payload with the name of the new file to be created. Only used for create.
 **/
-export const createIdAndSlug = (resSettings, payload) => {
+export const createId = (resSettings, payload) => {
   if (resSettings.handler === "json") {
-    if (resSettings.slug) {
-      const slug = makeSlug(payload.data[resSettings.slug]);
-      if (!payload.data.hasOwnProperty("slug")) {
-        payload.data.slug = slug;
-      }
-      if (!payload.data.hasOwnProperty("id")) {
-        payload.data.id = slug + ".json";
-      }
-    } else {
-      if (!payload.data.hasOwnProperty("id")) {
-        params.data.id = "data.json";
+    if (!payload.data.hasOwnProperty("id")) {
+      if (resSettings.filenameFromProperty) {
+        payload.data.id =
+          createFilename(payload.data[resSettings.filenameFromProperty]) +
+          ".json";
+      } else {
+        params.data.id = createFilename("data.json");
       }
     }
   }
@@ -193,10 +193,9 @@ export const convertNewFiles = async (
   payload
 ) => {
   // Find the path where we upload the embedded files
-  const filesPath = template(resSettings.filesPath ?? settings.filesPath, {
-    resource,
-    slug: payload.data.slug
-  });
+  const uploadJsonFilesToFunc =
+    resSettings.uploadJsonFilesTo ?? settings.uploadJsonFilesTo;
+  const uploadJsonFilesTo = uploadJsonFilesToFunc(resource, payload.data);
 
   await changeObjects(
     payload.data,
@@ -207,8 +206,8 @@ export const convertNewFiles = async (
         reader.onload = () => {
           resolve({
             type: "file",
-            id: makeSlug(file.rawFile.path),
-            path: filesPath,
+            id: createFilename(file.rawFile.path),
+            path: uploadJsonFilesTo,
             content: reader.result.split(",")[1]
           });
         };
@@ -221,17 +220,7 @@ export const convertNewFiles = async (
 };
 
 /**
-  Takes a string and replaces every [key] with value from obj
-**/
-const template = (org, obj) => {
-  let str = org;
-  for (const key in obj) {
-    str = str.replaceAll(`[${key}]`, obj[key]);
-  }
-  return str;
-};
-
-/**
   Turns a string into something that can be used in a filename
 **/
-const makeSlug = str => slugify(str, { lower: true, trim: true });
+const createFilename = str =>
+  timestamp() + "-" + slugify(str, { lower: true, trim: true });

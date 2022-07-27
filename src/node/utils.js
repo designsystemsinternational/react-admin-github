@@ -1,7 +1,7 @@
 const { join, basename, relative, dirname, resolve } = require("path");
 const { Base64 } = require("js-base64");
 const jwtSimple = require("jwt-simple");
-const { changeObjects } = require("../shared/utils");
+const { changeObjects, parseFilename } = require("../shared/utils");
 
 /**
   Simple utils
@@ -48,8 +48,7 @@ const beforeSave = async (octokit, repo, data, handler, jsonPath) => {
 
         // This is a new file
         if (file.content) {
-          const fullName = `${timestamp()}-${file.id}`;
-          const fullPath = join("content", file.path, fullName);
+          const fullPath = join("content", file.path, file.id);
           await uploadFile(octokit, repo, fullPath, file.content);
           delete file.content;
           file.src = relativePath(jsonPath, fullPath);
@@ -67,45 +66,26 @@ const beforeSave = async (octokit, repo, data, handler, jsonPath) => {
 
   // Remove generated main properties
   delete data.id;
-  delete data.path;
-  delete data.type;
-  delete data.createdAt;
-  delete data.slug;
+  delete data._ragInfo;
 };
 
 /**
   Called before returning the data to the data provider
-  The most important function is to create auto-generated properties.
+  The most important function is to create auto-generated _ragInfo and id properties.
 **/
 const beforeResponse = async (githubFile, handler, url, secret, json) => {
   const payload = {
     id: githubFile.name,
-    path: githubFile.path,
-    type: githubFile.type
+    _ragInfo: {
+      path: githubFile.path,
+      type: githubFile.type
+    }
   };
 
   // Check if filename has timestamp
-  const withoutExt = githubFile.name.split(".")[0];
-  if (withoutExt.length >= 7) {
-    const [
-      year,
-      month,
-      day,
-      hour,
-      minute,
-      second,
-      ...slugArray
-    ] = withoutExt.split("-");
-    if (!payload.hasOwnProperty("createdAt")) {
-      payload.createdAt = `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
-    }
-    if (!payload.hasOwnProperty("slug")) {
-      payload.slug = slugArray.join("-");
-    }
-  } else {
-    if (!payload.hasOwnProperty("slug")) {
-      payload.slug = withoutExt;
-    }
+  const parsedFilename = parseFilename(githubFile.name);
+  if (parsedFilename.createdAt) {
+    payload._ragInfo.createdAt = parsedFilename.createdAt;
   }
 
   // Check if we should add JSON contents to payload
@@ -123,13 +103,13 @@ const beforeResponse = async (githubFile, handler, url, secret, json) => {
         return obj.type === "file";
       },
       file => {
-        const filePath = absolutePath(payload.path, file.src);
+        const filePath = absolutePath(payload._ragInfo.path, file.src);
         const jwt = jwtSimple.encode({ path: filePath }, secret);
         const fileUrl =
           url + `?handler=preview&path=${filePath}&previewToken=${jwt}`;
         return Object.assign({}, file, {
-          url: fileUrl,
-          id: basename(filePath)
+          id: basename(filePath),
+          url: fileUrl
         });
       }
     );
@@ -155,33 +135,16 @@ const maybeParseJson = str => {
   Finds the relative path from a file to a file.
   Helpful for adding links to images in a from JSON to a to image
 **/
-const relativePath = (from, to) =>
-  join(relative(dirname(from), dirname(to)), basename(to));
+const relativePath = (from, to) => {
+  return join(relative(dirname(from), dirname(to)), basename(to));
+};
 
 /**
   Turns a relative path into an absolute path based on an origin path
   The originFile path cannot have a starting slash and should have an ext
 **/
 const absolutePath = (originFile, relative) => {
-  const absolute = resolve(`/${dirname(originFile)}`, relative);
-  return absolute.substring(1);
-};
-
-const timestamp = () => {
-  const padTo2Digits = num => {
-    return num.toString().padStart(2, "0");
-  };
-
-  const date = new Date();
-
-  return [
-    date.getUTCFullYear(),
-    padTo2Digits(date.getUTCMonth() + 1),
-    padTo2Digits(date.getUTCDate()),
-    padTo2Digits(date.getUTCHours()),
-    padTo2Digits(date.getUTCMinutes()),
-    padTo2Digits(date.getUTCSeconds())
-  ].join("-");
+  return resolve(`/${dirname(originFile)}`, relative).substring(1);
 };
 
 /**
@@ -207,6 +170,5 @@ module.exports = {
   maybeParseJson,
   beforeResponse,
   beforeSave,
-  uploadFile,
-  timestamp
+  uploadFile
 };
