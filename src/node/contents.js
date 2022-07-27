@@ -226,7 +226,7 @@ const update = async (octokit, props) => {
 
     response = await octokit.request(`PUT /repos/${repo}/contents/${path}`, {
       sha: getResponse.data.sha,
-      message: `Updated resource: ${resource}/${data.id}`,
+      message: `Updated resource: ${path}`,
       content: jsonToBase64(data)
     });
   } catch (e) {
