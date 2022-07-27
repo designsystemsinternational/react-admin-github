@@ -125,7 +125,7 @@ const beforeResponse = async (githubFile, handler, url, secret, json) => {
       }
     );
 
-    Object.assign(payload, contents);
+    Object.assign(payload, contents, { id: payload.id });
   }
 
   return payload;
