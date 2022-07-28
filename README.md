@@ -103,6 +103,7 @@ This is the default handler and it doesn't require any settings. It will load fi
     "path": "content/images/2022-01-01-12-00-00-myimage.png",
     "type": "file",
     "slug": "myimage",
+    "ext": "png",
     "createdAt": "2022-01-01T12:00:00Z"
   }
 }

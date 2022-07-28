@@ -83,18 +83,21 @@ const beforeSave = async (octokit, repo, resource, data, handler, jsonPath) => {
   The most important function is to create auto-generated _ragInfo and id properties.
 **/
 const beforeResponse = async (githubFile, handler, url, secret, json) => {
+  const parsedFilename = parseFilename(githubFile.name);
+
   const payload = {
     id: githubFile.name,
     _ragInfo: {
       name: githubFile.name,
       path: githubFile.path,
       type: githubFile.type,
-      slug: basename(githubFile.name, extname(githubFile.name))
+      slug: parsedFilename.slug,
+      ext: parsedFilename.ext
     }
   };
 
   // Check if filename has timestamp
-  const parsedFilename = parseFilename(githubFile.name);
+
   if (parsedFilename.createdAt) {
     payload._ragInfo.createdAt = parsedFilename.createdAt;
   }
