@@ -188,7 +188,7 @@ export const convertNewFiles = async (
         reader.onload = () => {
           resolve({
             type: "file",
-            id: createFilename(file.rawFile.path),
+            id: createFilename(file.rawFile.path, false, true),
             path: uploadJsonFilesTo,
             content: reader.result.split(",")[1]
           });
@@ -247,10 +247,13 @@ const randomString = (length = 5) => {
 /**
   Turns a string into something that can be used in a filename
 **/
-const createFilename = (str, disableTimestamp) => {
-  const slugified = `${randomString()}-${slugify(str, {
+const createFilename = (str, disableTimestamp, useRandomPrefix) => {
+  const slugified = slugify(str, {
     lower: true,
     trim: true
-  })}`;
-  return disableTimestamp ? slugified : timestamp() + "-" + slugified;
+  });
+
+  const filename = disableTimestamp ? slugified : timestamp() + "-" + slugified;
+
+  return useRandomPrefix ? randomString() + "-" + filename : filename;
 };
