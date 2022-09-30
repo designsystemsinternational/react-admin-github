@@ -233,9 +233,24 @@ export const createId = (resSettings, payload) => {
 };
 
 /**
+ * Returns a random string of a given length.
+ */
+const randomString = (length = 5) => {
+  const chars =
+    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  return Array.from({ length })
+    .map(() => chars[Math.floor(Math.random() * chars.length)])
+    .join("");
+};
+
+/**
   Turns a string into something that can be used in a filename
 **/
 const createFilename = (str, disableTimestamp) => {
-  const slugified = slugify(str, { lower: true, trim: true });
+  const slugified = `${randomString()}-${slugify(str, {
+    lower: true,
+    trim: true
+  })}`;
   return disableTimestamp ? slugified : timestamp() + "-" + slugified;
 };
