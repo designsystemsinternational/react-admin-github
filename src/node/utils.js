@@ -3,6 +3,8 @@ const { Base64 } = require("js-base64");
 const jwtSimple = require("jwt-simple");
 const { changeObjects, parseFilename } = require("../shared/utils");
 const bcrypt = require("bcryptjs");
+const fetch = require("node-fetch-commonjs");
+const FileType = require("file-type");
 
 /**
   Simple utils
@@ -203,6 +205,54 @@ const logUserInfo = (email, password, saltRounds) => {
   );
 };
 
+/**
+  Retrieves owner and repo name from a URL-like string.
+  Turning `owner/repo` into `{ owner: 'owner', repository: 'repo' }`
+**/
+const parseRepo = repo => {
+  const [owner, repoName] = repo.split("/");
+  return { owner, repository: repoName };
+};
+
+/**
+  Gets data from Github using the raw media type. This allows us to get around the APIs
+  default size limit of 1MB.
+
+  Returns a base64 encoded buffer
+ **/
+const getRawFile = async ({ token, octokitRest, repo, path }) => {
+  const { owner, repository } = parseRepo(repo);
+
+  const request = octokitRest.repos.getContent.endpoint({
+    owner,
+    repo: repository,
+    path,
+    mediaType: {
+      format: "raw"
+    }
+  });
+
+  const response = await fetch(request.url, {
+    method: "GET",
+    headers: {
+      Authorization: `token ${token}`,
+      ...request.headers
+    }
+  });
+
+  const buffer = await response.buffer();
+  const mimeType = await FileType.fromBuffer(buffer);
+  return {
+    data: {
+      name: basename(path),
+      path,
+      type: "file",
+      mimeType,
+      content: buffer.toString("base64")
+    }
+  };
+};
+
 module.exports = {
   isAuthorized,
   base64ToJson,
@@ -214,5 +264,7 @@ module.exports = {
   beforeSave,
   uploadFile,
   hashPassword,
-  logUserInfo
+  logUserInfo,
+  parseRepo,
+  getRawFile
 };
