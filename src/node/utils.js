@@ -5,6 +5,7 @@ const { changeObjects, parseFilename } = require("../shared/utils");
 const bcrypt = require("bcryptjs");
 const fetch = require("node-fetch-commonjs");
 const FileType = require("file-type");
+const { endpoint } = require("@octokit/endpoint");
 
 /**
   Simple utils
@@ -206,38 +207,26 @@ const logUserInfo = (email, password, saltRounds) => {
 };
 
 /**
-  Retrieves owner and repo name from a URL-like string.
-  Turning `owner/repo` into `{ owner: 'owner', repository: 'repo' }`
-**/
-const parseRepo = repo => {
-  const [owner, repoName] = repo.split("/");
-  return { owner, repository: repoName };
-};
-
-/**
   Gets data from Github using the raw media type. This allows us to get around the APIs
-  default size limit of 1MB.
+  default size limit of 1MB. It is using node fetch to perform the HTTP request instead
+  of Octokit, because Octokit "mangles" the data (even in raw mode) and it is not possible
+  to rebuild the file buffer from the mangled data.
 
   Returns a base64 encoded buffer
  **/
-const getRawFile = async ({ token, octokitRest, repo, path }) => {
-  const { owner, repository } = parseRepo(repo);
-
-  const request = octokitRest.repos.getContent.endpoint({
-    owner,
-    repo: repository,
-    path,
+const getRawFile = async ({ token, repo, path }) => {
+  const request = endpoint(`GET /repos/${repo}/contents/${path}`, {
+    headers: {
+      authorization: `token ${token}`
+    },
     mediaType: {
       format: "raw"
     }
   });
 
   const response = await fetch(request.url, {
-    method: "GET",
-    headers: {
-      Authorization: `token ${token}`,
-      ...request.headers
-    }
+    method: request.method,
+    headers: request.headers
   });
 
   const buffer = await response.buffer();
@@ -265,6 +254,5 @@ module.exports = {
   uploadFile,
   hashPassword,
   logUserInfo,
-  parseRepo,
   getRawFile
 };

@@ -1,5 +1,4 @@
 const jwtSimple = require("jwt-simple");
-const { Octokit: OctokitRest } = require("@octokit/rest");
 const { error } = require("./utils");
 const { getRawFile } = require("./utils");
 
@@ -16,11 +15,8 @@ const preview = async props => {
     return error(401, "Error decoding JWT");
   }
 
-  const octokitRest = new OctokitRest({ auth: token });
-
   const { data } = await getRawFile({
     token,
-    octokitRest,
     repo,
     path
   });

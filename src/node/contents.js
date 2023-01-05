@@ -1,5 +1,4 @@
 const { Octokit } = require("@octokit/core");
-const { Octokit: OctokitRest } = require("@octokit/rest");
 const { Base64 } = require("js-base64");
 const {
   isAuthorized,
@@ -28,12 +27,11 @@ const contents = async props => {
   // --------------------------------------------------
 
   const octokit = new Octokit({ auth: token });
-  const octokitRest = new OctokitRest({ auth: token });
   const { id, ids } = httpQuery;
 
   if (httpMethod === "GET") {
     if (id) {
-      return await getOne(octokitRest, props, token);
+      return await getOne(props, token);
     } else if (ids) {
       return await getMany(octokit, props, token);
     } else {
@@ -57,7 +55,7 @@ const contents = async props => {
 /**
   Gets a single resource by ID
 **/
-const getOne = async (octokitRest, props, token) => {
+const getOne = async (props, token) => {
   const { url, repo, secret } = props;
   const { resource, id, handler } = props.httpQuery;
 
@@ -65,7 +63,6 @@ const getOne = async (octokitRest, props, token) => {
   try {
     response = await getRawFile({
       token,
-      octokitRest,
       repo,
       path: `content/${resource}/${id}`
     });
@@ -82,7 +79,7 @@ const getOne = async (octokitRest, props, token) => {
   The only way to do this with the GitHub api is to make a request per resource
   I think that's okay since this is often 2-5 resources being loaded.
 **/
-const getMany = async (octokitRest, props, token) => {
+const getMany = async (props, token) => {
   const { url, repo, secret } = props;
   const { resource, ids, handler } = props.httpQuery;
 
@@ -91,7 +88,6 @@ const getMany = async (octokitRest, props, token) => {
       JSON.parse(ids).map(id => {
         return getRawFile({
           token,
-          octokitRest,
           repo,
           path: `content/${resource}/${id}`
         }).then(response => {
