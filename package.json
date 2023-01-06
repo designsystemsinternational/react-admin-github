@@ -1,6 +1,6 @@
 {
   "name": "@designsystemsinternational/react-admin-github",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
