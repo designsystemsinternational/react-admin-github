@@ -3,6 +3,9 @@ const { Base64 } = require("js-base64");
 const jwtSimple = require("jwt-simple");
 const { changeObjects, parseFilename } = require("../shared/utils");
 const bcrypt = require("bcryptjs");
+const fetch = require("node-fetch-commonjs");
+const FileType = require("file-type");
+const { endpoint } = require("@octokit/endpoint");
 
 /**
   Simple utils
@@ -203,6 +206,42 @@ const logUserInfo = (email, password, saltRounds) => {
   );
 };
 
+/**
+  Gets data from Github using the raw media type. This allows us to get around the APIs
+  default size limit of 1MB. It is using node fetch to perform the HTTP request instead
+  of Octokit, because Octokit "mangles" the data (even in raw mode) and it is not possible
+  to rebuild the file buffer from the mangled data.
+
+  Returns a base64 encoded buffer
+ **/
+const getRawFile = async ({ token, repo, path }) => {
+  const request = endpoint(`GET /repos/${repo}/contents/${path}`, {
+    headers: {
+      authorization: `token ${token}`
+    },
+    mediaType: {
+      format: "raw"
+    }
+  });
+
+  const response = await fetch(request.url, {
+    method: request.method,
+    headers: request.headers
+  });
+
+  const buffer = await response.buffer();
+  const mimeType = await FileType.fromBuffer(buffer);
+  return {
+    data: {
+      name: basename(path),
+      path,
+      type: "file",
+      mimeType,
+      content: buffer.toString("base64")
+    }
+  };
+};
+
 module.exports = {
   isAuthorized,
   base64ToJson,
@@ -214,5 +253,6 @@ module.exports = {
   beforeSave,
   uploadFile,
   hashPassword,
-  logUserInfo
+  logUserInfo,
+  getRawFile
 };

@@ -8,6 +8,7 @@ const {
   error,
   beforeResponse,
   beforeSave,
+  getRawFile,
   uploadFile
 } = require("./utils");
 
@@ -30,9 +31,9 @@ const contents = async props => {
 
   if (httpMethod === "GET") {
     if (id) {
-      return await getOne(octokit, props);
+      return await getOne(props, token);
     } else if (ids) {
-      return await getMany(octokit, props);
+      return await getMany(octokit, props, token);
     } else {
       return await getList(octokit, props);
     }
@@ -54,15 +55,17 @@ const contents = async props => {
 /**
   Gets a single resource by ID
 **/
-const getOne = async (octokit, props) => {
+const getOne = async (props, token) => {
   const { url, repo, secret } = props;
   const { resource, id, handler } = props.httpQuery;
 
   let response;
   try {
-    response = await octokit.request(
-      `GET /repos/${repo}/contents/content/${resource}/${id}`
-    );
+    response = await getRawFile({
+      token,
+      repo,
+      path: `content/${resource}/${id}`
+    });
   } catch (e) {
     return error(e.status ?? 500, e.message);
   }
@@ -76,17 +79,20 @@ const getOne = async (octokit, props) => {
   The only way to do this with the GitHub api is to make a request per resource
   I think that's okay since this is often 2-5 resources being loaded.
 **/
-const getMany = async (octokit, props) => {
+const getMany = async (props, token) => {
   const { url, repo, secret } = props;
   const { resource, ids, handler } = props.httpQuery;
+
   try {
     const data = await Promise.all(
       JSON.parse(ids).map(id => {
-        return octokit
-          .request(`GET /repos/${repo}/contents/content/${resource}/${id}`)
-          .then(response => {
-            return beforeResponse(response.data, handler, url, secret);
-          });
+        return getRawFile({
+          token,
+          repo,
+          path: `content/${resource}/${id}`
+        }).then(response => {
+          return beforeResponse(response.data, handler, url, secret);
+        });
       })
     );
     return success(200, { data });
