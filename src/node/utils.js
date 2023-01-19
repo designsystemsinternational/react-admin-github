@@ -236,7 +236,7 @@ const getRawFile = async ({ token, repo, path }) => {
       name: basename(path),
       path,
       type: "file",
-      mimeType,
+      mimeType: mimeType.mime,
       content: buffer.toString("base64")
     }
   };

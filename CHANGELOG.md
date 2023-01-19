@@ -2,6 +2,9 @@
 
 ## UNRELEASED
 
+## Fixed
+- Only return `mime` in `getRawFile`
+
 ## `1.4.0`
 
 ### Changed
