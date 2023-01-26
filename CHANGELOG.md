@@ -2,8 +2,11 @@
 
 ## UNRELEASED
 
-## Fixed
+## `1.4.1`
+
+### Fixed
 - Only return `mime` in `getRawFile`
+- Use deep object key lookup for sorting
 
 ## `1.4.0`
 
