@@ -12,6 +12,8 @@ const {
   uploadFile
 } = require("./utils");
 
+const getNestedObjectProperty = require("lodash.get");
+
 /**
   Reads, creates, updates and deletes files from the GitHub contents API.
   Handles both normal files and smart handling of JSON files based on handler setting
@@ -146,10 +148,14 @@ const getList = async (octokit, props) => {
 
   // Sort depending on the sort order
   const isAsc = sortOrder === "ASC";
+
   parsedData.sort((a, b) => {
-    if (a[sortField] < b[sortField]) {
+    const aField = getNestedObjectProperty(a, sortField);
+    const bField = getNestedObjectProperty(b, sortField);
+
+    if (aField < bField) {
       return isAsc ? -1 : 1;
-    } else if (a[sortField] > b[sortField]) {
+    } else if (aField > bField) {
       return isAsc ? 1 : -1;
     } else {
       return 0;
