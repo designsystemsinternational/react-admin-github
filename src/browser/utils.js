@@ -1,4 +1,6 @@
 import slugify from "slugify";
+import getNestedObjectProperty from "lodash.get";
+
 import { changeObjects, timestamp, parseFilename } from "../shared/utils";
 
 /**
@@ -202,6 +204,22 @@ export const convertNewFiles = async (
 };
 
 /**
+ Resolves the filenameFromProperty value for a resource, either by looking up
+ the value or by running the passed function to generate the value
+**/
+export const resolveFilenameFromProperty = (
+  filenameFromProperty,
+  data,
+  fallback = "untitled"
+) => {
+  if (typeof filenameFromProperty === "function") {
+    return filenameFromProperty.call(null, data) || fallback;
+  }
+
+  return getNestedObjectProperty(data, filenameFromProperty) || fallback;
+};
+
+/**
   Adds id to the payload with the name of the new file to be created. Only used for create.
 **/
 export const createId = (resSettings, payload) => {
@@ -211,8 +229,10 @@ export const createId = (resSettings, payload) => {
     if (!payload.data.hasOwnProperty("id")) {
       if (filenameFromProperty) {
         payload.data.id =
-          createFilename(payload.data[filenameFromProperty], disableTimestamp) +
-          ".json";
+          createFilename(
+            resolveFilenameFromProperty(filenameFromProperty, payload.data),
+            disableTimestamp
+          ) + ".json";
       } else {
         payload.data.id = createFilename("data.json", disableTimestamp);
       }

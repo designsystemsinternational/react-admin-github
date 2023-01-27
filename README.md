@@ -141,11 +141,21 @@ const dataProvider = buildDataProvider("url.to/proxy", {
     }
   }
 });
+
+// Passing a function to create the filename
+const dataProvider = buildDataProvider("url.to/proxy", {
+  resources: {
+    posts: {
+      handler: "json",
+      filenameFromProperty: (data) => data.title.toUpperCase(),
+    }
+  }
+});
 ```
 
 The following settings are available for the `json` handler:
 
-- `filenameFromProperty` can be set to the name of the `react-admin` field that you want to use in the filename of the JSON file. Along with the `disableTimestamp` setting, this can be used to control the name of the JSON files.
+- `filenameFromProperty` can be set to the name of the `react-admin` field that you want to use in the filename of the JSON file. Along with the `disableTimestamp` setting, this can be used to control the name of the JSON files. It's using lodash.get to lookup the property, so nested properties can be accessed using dot notation `nested.property.key`. Alternatively you can also pass a function that returns the filename value, this function gets passed the payload data as its only argument.
 - `uploadJsonFilesTo` is used when the Data Provider detects new file fields in the `<Create>` or `<Edit>` form. The data provider will automatically convert these files to base64, upload alongside the other JSON data, save these files in the GitHub repo, and replace the property with a file object with a relative path to the files folder. This setting allows you to specify where inside the `content` folder these files are uploaded to. The default is to upload files to a folder named after the JSON file inside the resource folder (e.g. `content/posts/my-post/image.png` for a `content/posts/my-post.json` file). You need to pass a function that accepts a `resource` and `data` parameter and returns a string path with the folder name (without the `content` path).
 
 The `json` handler also has special handling for resources named `users`, where it will has the password on the server in order to make it possible to CRUD users from `react-admin`.
