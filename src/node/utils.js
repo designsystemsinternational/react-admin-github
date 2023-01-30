@@ -236,7 +236,11 @@ const getRawFile = async ({ token, repo, path }) => {
       name: basename(path),
       path,
       type: "file",
-      mimeType: mimeType.mime,
+      // File-Type only recognizes media files, so now that we also send the JSON
+      // requests through this util we'll need to make sure that we don't run into
+      // a situation where file type is null. Since we only care about JSON files
+      // for now we can just set the mime type to application/json
+      mimeType: mimeType?.mime ?? "application/json",
       content: buffer.toString("base64")
     }
   };

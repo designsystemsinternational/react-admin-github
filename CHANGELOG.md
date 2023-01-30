@@ -1,6 +1,12 @@
 # Changelog
 
-## UNRELEASED
+## `1.5.0`
+
+### Fixed
+- Correctly handle nullish case for mimeType
+
+### Changed
+- Allow passing function to `filenameFromProperty` option
 
 ## `1.4.1`
 
