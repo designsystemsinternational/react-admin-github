@@ -271,7 +271,7 @@ const createFilename = (str, disableTimestamp, useRandomPrefix) => {
   const slugified = slugify(str, {
     lower: true,
     trim: true,
-    remove: /[*+~()'"!:@]/g
+    remove: /[*+~()¿?'"¡!:@]/g
   });
 
   const filename = disableTimestamp ? slugified : timestamp() + "-" + slugified;
