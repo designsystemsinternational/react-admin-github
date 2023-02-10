@@ -1,5 +1,11 @@
 # Changelog
 
+## `1.5.2`
+
+### Fixed
+
+- Do not remove period when removing special characters with slugify
+
 ## `1.5.1`
 
 ### Fixed

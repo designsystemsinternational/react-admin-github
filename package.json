@@ -1,6 +1,6 @@
 {
   "name": "@designsystemsinternational/react-admin-github",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
@@ -16,14 +16,15 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "^22.0.1",
     "@rollup/plugin-node-resolve": "^13.3.0",
-    "rollup": "^2.75.7",
-    "rollup-plugin-peer-deps-external": "^2.2.4",
     "@vitest/coverage-c8": "^0.22.0",
     "@vitest/ui": "^0.22.0",
+    "rollup": "^2.75.7",
+    "rollup-plugin-peer-deps-external": "^2.2.4",
     "vite": "^3.0.8",
     "vitest": "^0.22.0"
   },
   "dependencies": {
+    "@designsystemsinternational/react-admin-github": "^1.5.1",
     "@octokit/core": "^3.6.0",
     "@octokit/endpoint": "^7.0.3",
     "bcryptjs": "^2.4.3",
