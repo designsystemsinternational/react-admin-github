@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveFilenameFromProperty } from "../../src/browser/utils";
+import {
+  resolveFilenameFromProperty,
+  createFilename
+} from "../../src/browser/utils";
 
 describe("browser.utils", () => {
   describe("resolveFilenameFromProperty", () => {
@@ -40,6 +43,20 @@ describe("browser.utils", () => {
           "fallback"
         )
       ).toBe("fallback");
+    });
+  });
+
+  describe("createFilename", () => {
+    it("should remove special characters", () => {
+      const result = createFilename("my~my+my-{amazing}@fi.le[26].jpg", true);
+      expect(result).toBe("mymymy-amazingfi.le26.jpg");
+    });
+
+    it('should add the timestamp if "disableTimestamp" is false', () => {
+      const result = createFilename("my-file.jpg");
+      expect(result).toMatch(
+        /^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}-my-file.jpg$/
+      );
     });
   });
 });
