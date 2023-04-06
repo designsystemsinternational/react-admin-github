@@ -1,5 +1,11 @@
 # Changelog
 
+## `1.5.3`
+
+### Fixed
+
+- Do remove square and curly brackets special characters from filename of uploaded files
+
 ## `1.5.2`
 
 ### Fixed
