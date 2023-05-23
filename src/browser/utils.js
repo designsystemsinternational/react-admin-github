@@ -267,11 +267,11 @@ const randomString = (length = 5) => {
 /**
   Turns a string into something that can be used in a filename
 **/
-const createFilename = (str, disableTimestamp, useRandomPrefix) => {
+export const createFilename = (str, disableTimestamp, useRandomPrefix) => {
   const slugified = slugify(str, {
     lower: true,
     trim: true,
-    remove: /[*+~()¿?'"¡!:@]/g
+    remove: /[*+~\[\]{}()¿?'"¡!:@]/g
   });
 
   const filename = disableTimestamp ? slugified : timestamp() + "-" + slugified;
